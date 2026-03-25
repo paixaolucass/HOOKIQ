@@ -197,19 +197,39 @@ export default function HomePage() {
       {(mode === 'trends' || mode === 'full') && !loading && (() => {
         const expired = trendsFetchedAt ? !isCacheValid(trendsFetchedAt) : true
         return !trendsFetchedAt ? (
-          <div className="mb-4 border border-[#1a1a1a] px-4 py-3 flex items-center justify-between text-xs text-[#333]">
-            <span>Trends — nenhuma busca realizada</span>
-            <span>Resultado salvo por <span className="text-[#e5e5e5]">4h</span> após buscar</span>
+          <div className="mb-6 border border-[#1a1a1a] px-5 py-4 flex items-center justify-between gap-6">
+            <div>
+              <p className="text-xs text-[#444] uppercase tracking-widest mb-1">Cache</p>
+              <p className="text-sm text-[#555]">Nenhuma busca realizada ainda</p>
+            </div>
+            <p className="text-xs text-[#333] text-right">
+              Resultado salvo por <span className="text-[#e5e5e5]">4h</span> após buscar.<br />
+              Navegar entre abas não gera custo.
+            </p>
           </div>
         ) : expired ? (
-          <div className="mb-4 border border-[#333] px-4 py-3 flex items-center justify-between text-xs">
-            <span className="text-[#555]">Trends — última busca {timeAgo(trendsFetchedAt)}</span>
-            <span className="text-[#ef4444]">Cache expirado — vai chamar a IA</span>
+          <div className="mb-6 border border-[#ef4444]/40 px-5 py-4 flex items-center justify-between gap-6">
+            <div>
+              <p className="text-xs text-[#ef4444]/60 uppercase tracking-widest mb-1">Cache expirado</p>
+              <p className="text-2xl font-bold text-[#ef4444]">4h esgotadas</p>
+              <p className="text-xs text-[#555] mt-1">buscado {timeAgo(trendsFetchedAt)}</p>
+            </div>
+            <p className="text-xs text-[#555] text-right">
+              Próxima busca chama a IA.<br />
+              Novo cache de 4h será criado.
+            </p>
           </div>
         ) : (
-          <div className="mb-4 border border-[#1a1a1a] px-4 py-3 flex items-center justify-between text-xs">
-            <span className="text-[#444]">Trends — buscado {timeAgo(trendsFetchedAt)}</span>
-            <span className="text-[#22c55e]">Cache ativo · {remainingTime(trendsFetchedAt)} restantes</span>
+          <div className="mb-6 border border-[#22c55e]/30 px-5 py-4 flex items-center justify-between gap-6">
+            <div>
+              <p className="text-xs text-[#22c55e]/60 uppercase tracking-widest mb-1">Cache ativo</p>
+              <p className="text-2xl font-bold text-[#22c55e]">{remainingTime(trendsFetchedAt)}</p>
+              <p className="text-xs text-[#444] mt-1">buscado {timeAgo(trendsFetchedAt)}</p>
+            </div>
+            <p className="text-xs text-[#444] text-right">
+              Resultado salvo localmente.<br />
+              Sem custo até o cache expirar.
+            </p>
           </div>
         )
       })()}
