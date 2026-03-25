@@ -3,9 +3,11 @@
 import { useState, useRef } from 'react'
 import { playDone } from '@/lib/sound'
 import Toast from '@/components/Toast'
-import type { AnalysisResult, HookType, Destination } from '@/types'
+import type { AnalysisResult, HookType, Destination, CombinedOpportunity } from '@/types'
 import CutCard from '@/components/CutCard'
 import ExportBar from '@/components/ExportBar'
+import OpportunityAlert from '@/components/OpportunityAlert'
+import { loadMergedCacheResult } from '@/lib/trends-cache'
 
 type FilterDest = Destination | 'TODOS'
 type FilterType = HookType | 'TODOS'
@@ -21,6 +23,11 @@ export default function AnalisePage() {
   const [filterType, setFilterType]   = useState<FilterType>('TODOS')
   const [filterScore, setFilterScore] = useState<FilterScore>(5)
   const [toast, setToast] = useState(false)
+
+  // Cross-reference state
+  const [crossLoading, setCrossLoading] = useState(false)
+  const [crossError, setCrossError] = useState('')
+  const [opportunities, setOpportunities] = useState<CombinedOpportunity[] | null>(null)
 
   function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -43,6 +50,8 @@ export default function AnalisePage() {
     setError('')
     setLoading(true)
     setResult(null)
+    setOpportunities(null)
+    setCrossError('')
     setFilterDest('TODOS')
     setFilterType('TODOS')
     setFilterScore(5)
@@ -62,6 +71,34 @@ export default function AnalisePage() {
       setError(e instanceof Error ? e.message : 'Erro inesperado')
     } finally {
       setLoading(false)
+    }
+  }
+
+  async function handleCrossReference() {
+    if (!result?.cuts?.length) return
+    const cached = loadMergedCacheResult()
+    if (!cached?.trends?.length) {
+      setCrossError('Nenhuma trend em cache. Rode o Radar de Trends primeiro.')
+      return
+    }
+
+    setCrossLoading(true)
+    setCrossError('')
+    setOpportunities(null)
+
+    try {
+      const res = await fetch('/api/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mode: 'cross', cuts: result.cuts, trends: cached.trends }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Erro no cruzamento')
+      setOpportunities(data.opportunities ?? [])
+    } catch (e) {
+      setCrossError(e instanceof Error ? e.message : 'Erro inesperado')
+    } finally {
+      setCrossLoading(false)
     }
   }
 
@@ -223,6 +260,54 @@ export default function AnalisePage() {
               )}
             </section>
           )}
+
+          {/* Cross-reference section */}
+          <section>
+            <div className="flex items-center gap-4 mb-4">
+              <h3 className="text-xs tracking-widest uppercase text-[#444]">Cruzamento com Trends</h3>
+              <div className="flex-1 border-t border-[#1a1a1a]" />
+            </div>
+
+            {opportunities === null && (
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={handleCrossReference}
+                  disabled={crossLoading}
+                  className="px-4 py-2 text-xs font-medium border border-[#333] text-[#e5e5e5] hover:border-white hover:bg-[#1a1a1a] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  {crossLoading ? 'Cruzando...' : 'Cruzar com Trends'}
+                </button>
+                <span className="text-xs text-[#333]">
+                  combina cortes com trends em cache
+                </span>
+              </div>
+            )}
+
+            {crossError && (
+              <p className="text-xs text-[#ef4444] mt-2">{crossError}</p>
+            )}
+
+            {opportunities !== null && (
+              <div className="space-y-3">
+                {opportunities.length > 0
+                  ? opportunities.map((opp, i) => (
+                      <OpportunityAlert key={i} opportunity={opp} />
+                    ))
+                  : (
+                    <p className="text-xs text-[#444] py-2">
+                      Nenhuma oportunidade de cruzamento encontrada.
+                    </p>
+                  )
+                }
+                <button
+                  onClick={() => { setOpportunities(null); setCrossError('') }}
+                  className="text-xs text-[#333] hover:text-[#666] transition-colors mt-1"
+                >
+                  Refazer cruzamento
+                </button>
+              </div>
+            )}
+          </section>
 
         </div>
       )}

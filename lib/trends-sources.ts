@@ -3,6 +3,16 @@ export interface GoogleTrendItem {
   traffic: string
 }
 
+export interface ArxivItem {
+  title: string
+  summary: string
+}
+
+export interface DevToItem {
+  title: string
+  tags: string
+}
+
 export interface YouTubeShortItem {
   title: string
   channelTitle: string
@@ -358,6 +368,67 @@ export async function fetchAITrends(): Promise<YouTubeShortItem[]> {
       title: item.snippet.title,
       channelTitle: item.snippet.channelTitle,
     }))
+  } catch {
+    return []
+  }
+}
+
+const ARXIV_KEYWORDS = ['diffusion', 'multimodal', 'vision', 'image', 'video', 'generation', 'agent', 'reasoning', 'llm', 'language model', 'creative', 'design', 'text-to', 'clip', 'stable', 'latent']
+
+export async function fetchArxivAI(): Promise<ArxivItem[]> {
+  try {
+    const result = await withTimeout(
+      (async () => {
+        const res = await fetch(
+          'https://rss.arxiv.org/rss/cs.AI+cs.CL+cs.CV',
+          { cache: 'no-store', headers: { 'User-Agent': 'hookiq-trends/1.0', 'Accept': 'application/rss+xml' } }
+        )
+        if (!res.ok) return []
+        const xml = await res.text()
+        const items: ArxivItem[] = []
+        for (const match of xml.matchAll(/<item>([\s\S]*?)<\/item>/g)) {
+          const itemXml = match[1]
+          const titleMatch   = itemXml.match(/<title>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/title>/)
+          const summaryMatch = itemXml.match(/<description>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/description>/)
+          const title   = titleMatch?.[1]?.trim().replace(/\s+/g, ' ') ?? ''
+          const summary = summaryMatch?.[1]?.replace(/<[^>]+>/g, '').trim().slice(0, 200) ?? ''
+          if (!title) continue
+          const combined = (title + ' ' + summary).toLowerCase()
+          if (!ARXIV_KEYWORDS.some(kw => combined.includes(kw))) continue
+          items.push({ title, summary })
+          if (items.length >= 8) break
+        }
+        return items
+      })(),
+      6000
+    )
+    return result
+  } catch {
+    return []
+  }
+}
+
+export async function fetchDevToTrending(): Promise<DevToItem[]> {
+  try {
+    const result = await withTimeout(
+      (async () => {
+        const res = await fetch(
+          'https://dev.to/api/articles?top=3&per_page=12',
+          { cache: 'no-store', headers: { 'User-Agent': 'hookiq-trends/1.0' } }
+        )
+        if (!res.ok) return []
+        const data: any[] = await res.json()
+        return data
+          .filter((a: any) => a.title && Array.isArray(a.tag_list))
+          .slice(0, 10)
+          .map((a: any) => ({
+            title: a.title,
+            tags: (a.tag_list as string[]).slice(0, 4).join(', '),
+          }))
+      })(),
+      5000
+    )
+    return result
   } catch {
     return []
   }

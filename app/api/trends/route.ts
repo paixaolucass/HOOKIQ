@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import OpenAI from 'openai'
 import { createClient } from '@/lib/supabase/server'
 import { HOOKIQ_SYSTEM_PROMPT, getDataTrendsPrompt, getDataTrendsPromptForProfile, getSocialTrendsPrompt } from '@/lib/prompts'
-import { fetchGoogleTrendsUS, fetchYouTubeShortsGlobal, fetchAITrends, fetchHackerNewsTrends, fetchRedditBrTrends, fetchProductHuntTrends, fetchGoogleNewsBr } from '@/lib/trends-sources'
+import { fetchGoogleTrendsUS, fetchYouTubeShortsGlobal, fetchAITrends, fetchHackerNewsTrends, fetchRedditBrTrends, fetchProductHuntTrends, fetchGoogleNewsBr, fetchArxivAI, fetchDevToTrending } from '@/lib/trends-sources'
 import { DATA_CACHE_TTL, SOCIAL_CACHE_TTL } from '@/lib/trends-cache'
 import type { Trend, MetaTrend } from '@/types'
 
@@ -250,7 +250,7 @@ export async function POST(request: NextRequest) {
       // Only social cache valid — only call data model (needs to fetch sources first)
       socialTrends = cachedSocial.trends
 
-      const [googleTrends, youtubeShorts, aiShorts, hnTrends, redditTrends, phTrends, newsBr] = await Promise.all([
+      const [googleTrends, youtubeShorts, aiShorts, hnTrends, redditTrends, phTrends, newsBr, arxivItems, devtoItems] = await Promise.all([
         fetchGoogleTrendsUS().catch(e => { console.error('[trends] Google Trends EUA falhou:', e instanceof Error ? e.message : String(e)); return [] as Awaited<ReturnType<typeof fetchGoogleTrendsUS>> }),
         fetchYouTubeShortsGlobal().catch(e => { console.error('[trends] YouTube Shorts Global falhou:', e instanceof Error ? e.message : String(e)); return [] as Awaited<ReturnType<typeof fetchYouTubeShortsGlobal>> }),
         fetchAITrends().catch(e => { console.error('[trends] YouTube AI Shorts falhou:', e instanceof Error ? e.message : String(e)); return [] as Awaited<ReturnType<typeof fetchAITrends>> }),
@@ -258,6 +258,8 @@ export async function POST(request: NextRequest) {
         fetchRedditBrTrends().catch(e => { console.error('[trends] Reddit BR falhou:', e instanceof Error ? e.message : String(e)); return [] as Awaited<ReturnType<typeof fetchRedditBrTrends>> }),
         fetchProductHuntTrends().catch(e => { console.error('[trends] Product Hunt falhou:', e instanceof Error ? e.message : String(e)); return [] as Awaited<ReturnType<typeof fetchProductHuntTrends>> }),
         fetchGoogleNewsBr().catch(e => { console.error('[trends] Google News BR falhou:', e instanceof Error ? e.message : String(e)); return [] as Awaited<ReturnType<typeof fetchGoogleNewsBr>> }),
+        fetchArxivAI().catch(e => { console.error('[trends] arXiv falhou:', e instanceof Error ? e.message : String(e)); return [] as Awaited<ReturnType<typeof fetchArxivAI>> }),
+        fetchDevToTrending().catch(e => { console.error('[trends] Dev.to falhou:', e instanceof Error ? e.message : String(e)); return [] as Awaited<ReturnType<typeof fetchDevToTrending>> }),
       ])
 
       const dataResult2 = await (async () => {
@@ -266,7 +268,7 @@ export async function POST(request: NextRequest) {
             model: 'gpt-4o-mini',
             messages: [
               { role: 'system', content: HOOKIQ_SYSTEM_PROMPT },
-              { role: 'user', content: getDataTrendsPromptForProfile(profile, googleTrends, youtubeShorts, aiShorts, hnTrends, redditTrends, phTrends, newsBr) },
+              { role: 'user', content: getDataTrendsPromptForProfile(profile, googleTrends, youtubeShorts, aiShorts, hnTrends, redditTrends, phTrends, newsBr, arxivItems, devtoItems) },
             ],
             response_format: { type: 'json_object' },
             temperature: 0.4,
@@ -290,7 +292,7 @@ export async function POST(request: NextRequest) {
 
     } else {
       // No cache — fetch all sources and run both AI models in parallel
-      const [googleTrends, youtubeShorts, aiShorts, hnTrends, redditTrends, phTrends, newsBr] = await Promise.all([
+      const [googleTrends, youtubeShorts, aiShorts, hnTrends, redditTrends, phTrends, newsBr, arxivItems, devtoItems] = await Promise.all([
         fetchGoogleTrendsUS().catch(e => { console.error('[trends] Google Trends EUA falhou:', e instanceof Error ? e.message : String(e)); return [] as Awaited<ReturnType<typeof fetchGoogleTrendsUS>> }),
         fetchYouTubeShortsGlobal().catch(e => { console.error('[trends] YouTube Shorts Global falhou:', e instanceof Error ? e.message : String(e)); return [] as Awaited<ReturnType<typeof fetchYouTubeShortsGlobal>> }),
         fetchAITrends().catch(e => { console.error('[trends] YouTube AI Shorts falhou:', e instanceof Error ? e.message : String(e)); return [] as Awaited<ReturnType<typeof fetchAITrends>> }),
@@ -298,6 +300,8 @@ export async function POST(request: NextRequest) {
         fetchRedditBrTrends().catch(e => { console.error('[trends] Reddit BR falhou:', e instanceof Error ? e.message : String(e)); return [] as Awaited<ReturnType<typeof fetchRedditBrTrends>> }),
         fetchProductHuntTrends().catch(e => { console.error('[trends] Product Hunt falhou:', e instanceof Error ? e.message : String(e)); return [] as Awaited<ReturnType<typeof fetchProductHuntTrends>> }),
         fetchGoogleNewsBr().catch(e => { console.error('[trends] Google News BR falhou:', e instanceof Error ? e.message : String(e)); return [] as Awaited<ReturnType<typeof fetchGoogleNewsBr>> }),
+        fetchArxivAI().catch(e => { console.error('[trends] arXiv falhou:', e instanceof Error ? e.message : String(e)); return [] as Awaited<ReturnType<typeof fetchArxivAI>> }),
+        fetchDevToTrending().catch(e => { console.error('[trends] Dev.to falhou:', e instanceof Error ? e.message : String(e)); return [] as Awaited<ReturnType<typeof fetchDevToTrending>> }),
       ])
 
       let rawDataMetaTrend: MetaTrend | undefined
@@ -309,7 +313,7 @@ export async function POST(request: NextRequest) {
               model: 'gpt-4o-mini',
               messages: [
                 { role: 'system', content: HOOKIQ_SYSTEM_PROMPT },
-                { role: 'user', content: getDataTrendsPromptForProfile(profile, googleTrends, youtubeShorts, aiShorts, hnTrends, redditTrends, phTrends, newsBr) },
+                { role: 'user', content: getDataTrendsPromptForProfile(profile, googleTrends, youtubeShorts, aiShorts, hnTrends, redditTrends, phTrends, newsBr, arxivItems, devtoItems) },
               ],
               response_format: { type: 'json_object' },
               temperature: 0.4,

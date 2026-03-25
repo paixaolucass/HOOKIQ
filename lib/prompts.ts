@@ -1,4 +1,4 @@
-import type { GoogleTrendItem, YouTubeShortItem, HackerNewsItem, RedditBrItem, ProductHuntItem, GoogleNewsItem } from './trends-sources'
+import type { GoogleTrendItem, YouTubeShortItem, HackerNewsItem, RedditBrItem, ProductHuntItem, GoogleNewsItem, ArxivItem, DevToItem } from './trends-sources'
 
 // ── Sazonalidade — datas comemorativas brasileiras ─────────────────────────────
 
@@ -427,6 +427,8 @@ export function getDataTrendsPromptForProfile(
   redditTrends?: RedditBrItem[],
   phTrends?: ProductHuntItem[],
   newsBr?: GoogleNewsItem[],
+  arxivItems?: ArxivItem[],
+  devtoItems?: DevToItem[],
 ) {
   const today = new Date().toLocaleDateString('pt-BR')
 
@@ -456,6 +458,14 @@ export function getDataTrendsPromptForProfile(
 
   const newsSection = newsBr && newsBr.length > 0
     ? newsBr.map(n => `- "${n.title}"${n.publishedAt ? ` (${n.publishedAt})` : ''}`).join('\n')
+    : '(sem dados)'
+
+  const arxivSection = arxivItems && arxivItems.length > 0
+    ? arxivItems.map(a => `- "${a.title}"${a.summary ? ` — ${a.summary}` : ''}`).join('\n')
+    : '(sem dados)'
+
+  const devtoSection = devtoItems && devtoItems.length > 0
+    ? devtoItems.map(d => `- "${d.title}"${d.tags ? ` [${d.tags}]` : ''}`).join('\n')
     : '(sem dados)'
 
   const isRuan = profile === 'ruan'
@@ -529,6 +539,12 @@ ${phSection}
 
 GOOGLE NEWS BR (artigos recentes sobre IA no Brasil — últimas 48h — use para medir o que já chegou localmente):
 ${newsSection}
+
+ARXIV AI PAPERS (últimas 48h — pesquisa de ponta em IA e visão computacional, sinal de what's coming em 2–4 semanas):
+${arxivSection}
+
+DEV.TO TRENDING (artigos tech em alta hoje — comunidade global de desenvolvedores):
+${devtoSection}
 ${upcomingDates ? `\nDATAS COMEMORATIVAS PRÓXIMAS (próximos 30 dias):\n${upcomingDates}\n\nConsidere essas datas ao avaliar oportunidades de trend. Se uma trend se conecta a uma data próxima, mencione em overlensAngle e aumente o rankScore proporcionalmente à proximidade da data.\n` : ''}
 DISTRIBUIÇÃO DE JANELAS TEMPORAIS — OBRIGATÓRIO:
 Distribua as janelas de forma VARIADA. Não coloque tudo como ABERTA. Use esta lógica com rigor:
