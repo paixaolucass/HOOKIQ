@@ -262,6 +262,39 @@ export default function HomePage() {
             </div>
           )}
 
+          {/* Trends — primeiro */}
+          {result.trends && result.trends.length > 0 && (
+            <section>
+              <div className="flex items-center gap-4 mb-4">
+                <h3 className="text-xs tracking-widest uppercase text-[#444]">Rank de trends</h3>
+                <div className="flex-1 border-t border-[#1a1a1a]" />
+                <span className="text-xs text-[#333]">{result.trends.length} identificadas</span>
+                <ExportBar result={result} type="trends" />
+              </div>
+              <div className="space-y-3">
+                {[...result.trends]
+                  .sort((a, b) => (a.rank ?? a.id) - (b.rank ?? b.id))
+                  .map(trend => <TrendCard key={trend.id} trend={trend} />)
+                }
+              </div>
+            </section>
+          )}
+
+          {/* Opportunities */}
+          {result.opportunities && result.opportunities.length > 0 && (
+            <section>
+              <div className="flex items-center gap-4 mb-4">
+                <h3 className="text-xs tracking-widest uppercase text-[#444]">Oportunidades combinadas</h3>
+                <div className="flex-1 border-t border-[#1a1a1a]" />
+              </div>
+              <div className="space-y-3">
+                {result.opportunities.map((opp, i) => (
+                  <OpportunityAlert key={i} opportunity={opp} />
+                ))}
+              </div>
+            </section>
+          )}
+
           {/* Cuts */}
           {result.cuts && result.cuts.length > 0 && (
             <section>
@@ -350,35 +383,6 @@ export default function HomePage() {
             </section>
           )}
 
-          {/* Opportunities */}
-          {result.opportunities && result.opportunities.length > 0 && (
-            <section>
-              <div className="flex items-center gap-4 mb-4">
-                <h3 className="text-xs tracking-widest uppercase text-[#444]">Oportunidades combinadas</h3>
-                <div className="flex-1 border-t border-[#1a1a1a]" />
-              </div>
-              <div className="space-y-3">
-                {result.opportunities.map((opp, i) => (
-                  <OpportunityAlert key={i} opportunity={opp} />
-                ))}
-              </div>
-            </section>
-          )}
-
-          {/* Trends */}
-          {result.trends && result.trends.length > 0 && (
-            <section>
-              <div className="flex items-center gap-4 mb-4">
-                <h3 className="text-xs tracking-widest uppercase text-[#444]">Radar de trends</h3>
-                <div className="flex-1 border-t border-[#1a1a1a]" />
-                <span className="text-xs text-[#333]">{result.trends.length} identificadas</span>
-                <ExportBar result={result} type="trends" />
-              </div>
-              <div className="space-y-3">
-                {result.trends.map(trend => <TrendCard key={trend.id} trend={trend} />)}
-              </div>
-            </section>
-          )}
         </div>
       )}
     </div>
