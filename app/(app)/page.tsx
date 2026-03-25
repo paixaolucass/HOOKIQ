@@ -14,7 +14,7 @@ type FilterType = HookType | 'TODOS'
 type FilterScore = 5 | 7 | 9
 
 export default function HomePage() {
-  const [mode, setMode] = useState<Mode>('transcription')
+  const [mode, setMode] = useState<Mode>('trends')
   const [transcription, setTranscription] = useState('')
   const [result, setResult] = useState<AnalysisResult | null>(null)
   const [loading, setLoading] = useState(false)
@@ -144,7 +144,7 @@ export default function HomePage() {
 
       {/* Mode selector */}
       <div className="flex gap-2 mb-6">
-        {(['transcription', 'trends', 'full'] as Mode[]).map(m => (
+        {(['trends', 'transcription', 'full'] as Mode[]).map(m => (
           <button
             key={m}
             onClick={() => { setMode(m); setResult(null); setError('') }}
