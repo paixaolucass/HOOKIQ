@@ -61,6 +61,12 @@ export interface Cut {
   roteiro?: Roteiro
 }
 
+export interface TrendRhetoric {
+  ethos: { score: number; analysis: string }
+  pathos: { score: number; emotion: string; analysis: string }
+  logos: { score: number; analysis: string }
+}
+
 export interface Trend {
   id: number
   window: TrendWindow
@@ -69,6 +75,10 @@ export interface Trend {
   realFormat: string
   overlensAngle: string
   urgency: string
+  rank?: number
+  rankScore?: number
+  rankJustification?: string
+  rhetoric?: TrendRhetoric
 }
 
 export interface CombinedOpportunity {

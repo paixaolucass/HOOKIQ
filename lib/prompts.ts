@@ -287,7 +287,19 @@ REGRAS:
 - Priorize temas que se conectam ao nicho da Overlens (IA, criatividade, design, fotografia, conteúdo)
 - overlensAngle: como a Overlens pode usar essa trend de forma autêntica e com autoridade
 
-Retorne JSON: {"trends":[{"id":1,"window":"ABERTA","platform":"YouTube Shorts","superficialSubject":"...","realFormat":"...","overlensAngle":"...","urgency":"..."}]}`
+RANK DE OPORTUNIDADE:
+Para cada trend, calcule um score de oportunidade (0–10) e atribua um rank (1 = maior oportunidade):
+- rankScore: combina janela temporal (ABERTA > FECHANDO > FECHADA), alinhamento ao nicho Overlens e potencial de execução
+- rank: posição ordenada de 1 a N (1 = melhor oportunidade agora)
+- rankJustification: 1 frase explicando por que está nessa posição
+
+RETÓRICA DO FORMATO (Aristotélica):
+Para cada trend, analise o FORMATO (não o assunto) sob as três dimensões:
+- ethos (0–2): o quanto esse formato permite ao criador demonstrar autoridade e expertise no nicho
+- pathos (0–2): qual emoção o formato ativa no público que consome — identifique a emoção dominante
+- logos (0–2): se há ângulo racional, dado ou evidência que o formato naturalmente carrega
+
+Retorne JSON: {"trends":[{"id":1,"rank":1,"rankScore":9,"rankJustification":"...","window":"ABERTA","platform":"YouTube Shorts","superficialSubject":"...","realFormat":"...","overlensAngle":"...","urgency":"...","rhetoric":{"ethos":{"score":2,"analysis":"..."},"pathos":{"score":2,"emotion":"curiosidade","analysis":"..."},"logos":{"score":1,"analysis":"..."}}}]}`
 }
 
 // Prompt para gpt-4o-search-preview — busca em tempo real no TikTok e Instagram
@@ -306,7 +318,17 @@ REGRAS:
 - urgency: orientação de timing em 1 frase direta
 - Retorne exatamente 5 trends, começando o id em 6
 
-Retorne JSON: {"trends":[{"id":6,"window":"ABERTA","platform":"TikTok","superficialSubject":"...","realFormat":"...","overlensAngle":"...","urgency":"..."}]}`
+RANK DE OPORTUNIDADE:
+- rankScore: 0–10 combinando janela temporal, alinhamento ao nicho Overlens e potencial de execução
+- rank: posição de oportunidade (6 a 10, sequência dos 5 trends sociais)
+- rankJustification: 1 frase
+
+RETÓRICA DO FORMATO:
+- ethos (0–2): o quanto esse formato permite mostrar autoridade
+- pathos (0–2): emoção dominante ativada no público + qual emoção
+- logos (0–2): ângulo racional ou baseado em dado que o formato carrega
+
+Retorne JSON: {"trends":[{"id":6,"rank":6,"rankScore":8,"rankJustification":"...","window":"ABERTA","platform":"TikTok","superficialSubject":"...","realFormat":"...","overlensAngle":"...","urgency":"...","rhetoric":{"ethos":{"score":1,"analysis":"..."},"pathos":{"score":2,"emotion":"identificação","analysis":"..."},"logos":{"score":1,"analysis":"..."}}}]}`
 
 export function getRoteiroPrompt(cut: unknown) {
   const c = cut as {

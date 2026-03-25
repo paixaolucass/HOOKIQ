@@ -118,19 +118,22 @@ export default function TrendsPage() {
       )}
 
       {/* Resultados */}
-      {hasResult && (
-        <>
-          <div className="flex items-center gap-4 mb-4">
-            <span className="text-xs tracking-widest uppercase text-[#444]">Trends</span>
-            <div className="flex-1 border-t border-[#1a1a1a]" />
-            <span className="text-xs text-[#333]">{result!.trends!.length} identificadas</span>
-            <ExportBar result={result!} type="trends" />
-          </div>
-          <div className="space-y-3">
-            {result!.trends!.map(trend => <TrendCard key={trend.id} trend={trend} />)}
-          </div>
-        </>
-      )}
+      {hasResult && (() => {
+        const sorted = [...result!.trends!].sort((a, b) => (a.rank ?? a.id) - (b.rank ?? b.id))
+        return (
+          <>
+            <div className="flex items-center gap-4 mb-4">
+              <span className="text-xs tracking-widest uppercase text-[#444]">Rank de trends</span>
+              <div className="flex-1 border-t border-[#1a1a1a]" />
+              <span className="text-xs text-[#333]">{sorted.length} identificadas</span>
+              <ExportBar result={result!} type="trends" />
+            </div>
+            <div className="space-y-3">
+              {sorted.map(trend => <TrendCard key={trend.id} trend={trend} />)}
+            </div>
+          </>
+        )
+      })()}
     </div>
   )
 }
