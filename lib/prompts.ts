@@ -80,13 +80,19 @@ Para cada corte, inclua uma dica técnica de edição/formato em 1 frase:
 - Como cortar, qual enquadramento, se usa legenda, texto animado, câmera estática, B-roll, etc.
 - Específica para o destino (RUAN vs OVERLENS têm ritmos diferentes).
 
-━━━ TIMESTAMP ━━━
+━━━ TIMESTAMP E OFFSET ━━━
 
-Identifique onde na transcrição o trecho aparece e extraia o timestamp.
-- Se a transcrição tiver marcações como [00:15:32], 00:15:32, (15:32) ou similares, use o timestamp mais próximo do trecho.
-- Se houver timestamps de início e fim do trecho, retorne no formato "00:15:32 → 00:16:10".
-- Se a transcrição não tiver timestamps, retorne null.
-- O excerpt deve ser as PALAVRAS EXATAS da transcrição, sem alteração nenhuma.
+Transcrições frequentemente começam no meio de uma gravação — não em 00:00. O primeiro timestamp que aparecer na transcrição é o OFFSET e deve ser subtraído de todos os outros timestamps.
+
+REGRA INVIOLÁVEL:
+- Identifique o offset: o PRIMEIRO timestamp que aparecer na transcrição (ex: 00:04:42)
+- Todo timestamp do corte = timestamp bruto − offset
+- Exemplo: trecho em 00:19:15, offset 00:04:42 → exibir "00:14:33"
+- Se o offset for 00:00 ou não houver timestamps, use o valor bruto
+- Nunca use o timestamp bruto diretamente se houver offset
+- Retorne no formato "HH:MM:SS → HH:MM:SS" para início e fim do trecho
+- Se a transcrição não tiver timestamps, retorne null
+- O excerpt deve ser as PALAVRAS EXATAS da transcrição, sem alteração nenhuma
 
 ━━━ TAMANHO DOS TRECHOS ━━━
 
