@@ -55,6 +55,20 @@ timestamp bruto − offset. Regra já está no `ANALYZE_PROMPT` em `lib/prompts.
 
 ---
 
+## Referência Overlens
+
+Sempre usar os manuais em `Manuais/` como referência editorial e de produto:
+
+- `[O] Overview da Overlens.txt` — visão geral da Overlens, missão, produtos
+- `[O] [LXP] Manual da Vanguarda.txt` — manual do produto Vanguarda
+- `[O] [LXP] Manual do Overpass.txt` — manual do produto Overpass
+- `Manual da Metodologia Overlens.docx` — metodologia editorial completa
+- `Glossário da Vanguarda.docx` — glossário e termos próprios da Vanguarda
+
+Esses manuais são a fonte de verdade para linguagem, personas, produtos e posicionamento da Overlens. Qualquer prompt de IA, análise ou sugestão editorial deve estar alinhada com eles.
+
+---
+
 ## Agentes Claude (.claude/agents/)
 
 Quatro agentes especializados disponíveis:

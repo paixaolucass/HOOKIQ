@@ -15,10 +15,15 @@ export default async function HistoricoPage() {
 
   if (sessionsError) console.error('[historico] query error:', sessionsError)
 
-  const typeLabels = {
+  const typeLabels: Record<string, string> = {
     transcription: 'Transcrição',
     trends: 'Trends',
     full: 'Full',
+    trends_data: 'Trends (dados)',
+    trends_data_ruan: 'Trends Ruan',
+    trends_data_overlens: 'Trends Overlens',
+    trends_social: 'Trends Social',
+    saved_trend: 'Trend salva',
   }
 
   return (

@@ -3,11 +3,12 @@
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { Zap, TrendingUp, History, LogOut } from 'lucide-react'
+import { Zap, TrendingUp, History, Bookmark, LogOut } from 'lucide-react'
 
 const navItems = [
   { href: '/', label: 'Análise', icon: Zap },
   { href: '/trends', label: 'Trends', icon: TrendingUp },
+  { href: '/saved', label: 'Salvas', icon: Bookmark },
   { href: '/historico', label: 'Histórico', icon: History },
 ]
 

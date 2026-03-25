@@ -67,10 +67,17 @@ export interface TrendRhetoric {
   logos: { score: number; analysis: string }
 }
 
+export interface SaturationEstimate {
+  daysRemaining: number
+  competitorVolume: 'baixo' | 'médio' | 'alto'
+  recommendation: 'entrar agora' | 'entrar com ângulo diferente' | 'evitar'
+}
+
 export interface Trend {
   id: number
   window: TrendWindow
   platform: string
+  originCountry?: 'EUA' | 'Brasil' | 'Global' | 'Europa'
   superficialSubject: string
   realFormat: string
   overlensAngle: string
@@ -78,8 +85,58 @@ export interface Trend {
   rank?: number
   rankScore?: number
   rankJustification?: string
+  hookAngle?: string
+  hookAngles?: string[]
+  executionTip?: string
+  publishingTip?: string
+  saturationEstimate?: SaturationEstimate
   rhetoric?: TrendRhetoric
+  isNew?: boolean
+  profile?: 'ruan' | 'overlens'
+  seasonalConnection?: string
 }
+
+export interface MetaTrend {
+  theme: string
+  description: string
+  trendIds: number[]
+  overlensOpportunity: string
+}
+
+export interface TrendsResult {
+  trends: Trend[]
+  metaTrend?: MetaTrend
+}
+
+export interface PerformanceData {
+  platform: string
+  views24h?: number
+  engagement: 'abaixo' | 'esperado' | 'acima'
+  notes?: string
+  recordedAt: string
+}
+
+export interface SavedTrend {
+  id: string
+  userId: string
+  trend: Trend
+  status: 'salva' | 'gravando' | 'publicada'
+  savedAt: string
+  updatedAt: string
+  performanceData?: PerformanceData
+}
+
+export interface TrendComment {
+  id: string
+  trendId: number
+  trendFetchedAt: string
+  userId: string
+  userEmail: string
+  text: string
+  createdAt: string
+}
+
+export type TrendAssignment = 'ruan' | 'overlens' | null
 
 export interface CombinedOpportunity {
   cutId: number
@@ -113,8 +170,8 @@ export interface Roteiro {
 export interface Session {
   id: string
   user_id: string
-  type: 'transcription' | 'trends' | 'full'
+  type: 'transcription' | 'trends' | 'full' | 'trends_data' | 'trends_data_ruan' | 'trends_data_overlens' | 'trends_social' | 'saved_trend'
   input?: string
-  result: AnalysisResult
+  result: AnalysisResult & { trend?: Trend; status?: string }
   created_at: string
 }

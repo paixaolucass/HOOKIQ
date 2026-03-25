@@ -1,10 +1,79 @@
-import type { GoogleTrendItem, YouTubeShortItem } from './trends-sources'
+import type { GoogleTrendItem, YouTubeShortItem, HackerNewsItem, RedditBrItem, ProductHuntItem, GoogleNewsItem } from './trends-sources'
+
+// ── Sazonalidade — datas comemorativas brasileiras ─────────────────────────────
+
+function getUpcomingSeasonalDates(): string {
+  const today = new Date()
+  const year = today.getFullYear()
+
+  const dates = [
+    { date: new Date(year, 0, 1),   name: 'Ano Novo' },
+    { date: new Date(year, 1, 12),  name: 'Dia dos Namorados (BR) - 12/06, aviso em fev' },
+    { date: new Date(year, 2, 8),   name: 'Dia Internacional da Mulher' },
+    { date: new Date(year, 3, 21),  name: 'Tiradentes' },
+    { date: new Date(year, 4, 11),  name: 'Dia das Mães (2º domingo de maio)' },
+    { date: new Date(year, 5, 12),  name: 'Dia dos Namorados' },
+    { date: new Date(year, 6, 13),  name: 'Dia dos Pais (2º domingo de agosto)' },
+    { date: new Date(year, 9, 12),  name: 'Dia das Crianças' },
+    { date: new Date(year, 9, 31),  name: 'Halloween' },
+    { date: new Date(year, 10, 15), name: 'Proclamação da República / Black Friday (aprox)' },
+    { date: new Date(year, 11, 25), name: 'Natal' },
+    { date: new Date(year, 11, 31), name: 'Réveillon' },
+  ]
+
+  const upcoming = dates.filter(d => {
+    const diff = d.date.getTime() - today.getTime()
+    return diff >= 0 && diff <= 30 * 24 * 60 * 60 * 1000
+  })
+
+  if (upcoming.length === 0) return ''
+  return upcoming.map(d => `- ${d.name} (${d.date.toLocaleDateString('pt-BR')})`).join('\n')
+}
+
+// ── Contexto editorial condensado dos manuais da Overlens ─────────────────────
+
+export const OVERLENS_EDITORIAL_CONTEXT = `CONTEXTO EDITORIAL OVERLENS
+
+MISSÃO E POSICIONAMENTO
+A Overlens é uma escola para pessoas que criam. Missão: preparar a humanidade para criar mais e melhor — com consciência, responsabilidade e critério. Não é um lugar de receitas prontas, mas de formação de criadores autônomos. Combate a renúncia criativa num mundo que recompensa obediência e repetição.
+
+O QUE DIFERENCIA CONTEÚDO OVERLENS DO GENÉRICO
+- Densidade editorial: cada conteúdo entrega algo concreto, acionável ou revelador
+- Autoria real: posicionamento próprio, não repercussão de opiniões alheias
+- Profundidade sem complexidade vazia: direto ao ponto, sem rodeios
+- Tecnologia como aliada da criação humana, não como substituto da autoria
+- Critica o que paralisa criadores; celebra o que os move para a ação real
+- Nunca motivacional vazio, nunca fórmula genérica de crescimento
+
+LINGUAGEM E TOM CARACTERÍSTICOS
+- Denso, direto, assertivo — sem saudações, sem enchimento
+- Faz afirmações, não sugestões; orienta, não implora engajamento
+- Vocabulário próprio: nexialista, Vanguarda, Overpass, autonomia criativa
+- Tom de autoridade editorial: quem fala sabe do que fala e não pede permissão
+- Ruan: leveza + velocidade + gancho no primeiro segundo; volume e cadência rápida
+- Overlens (canal institucional): autoridade + densidade + gancho nos 5 primeiros segundos com entrega concreta até o final
+
+O QUE A OVERLENS NÃO FAZ
+- Não usa motivacional vazio ("você consegue!", "acredite em você")
+- Não faz listas genéricas de produtividade sem aplicação real ao nicho criativo
+- Não cobre tendência por cobertura — só entra com ângulo de autoridade
+- Não terceiriza autoria para a ferramenta ("o ChatGPT faz tudo por você")
+- Não trata IA como ameaça existencial — aborda como expansão da criação humana
+- Não replica o que todo criador de tech já está fazendo
+
+COMO A OVERLENS ABORDA IA E CRIATIVIDADE
+IA é tratada como ferramenta de ampliação da autoria, não de substituição. O ângulo sempre retorna ao criador humano: o que muda no processo criativo real? Como isso afeta decisão, visão, autoria? O conteúdo que funciona para Overlens conecta o que a IA faz com o que o criador pode fazer com isso — concreto, demonstrável, com ponto de vista.`
+
+// ── System prompt global ───────────────────────────────────────────────────────
 
 export const HOOKIQ_SYSTEM_PROMPT = `Você é HOOKIQ, um sistema de inteligência editorial desenvolvido pela Overlens.
 
 A Overlens é uma escola para pessoas que criam. Conteúdo denso, direto, orientado à ação.
-→ Perfil do Ruan: motor de crescimento. Volume, leveza, gancho no primeiro segundo.
-→ Perfil da Overlens: autoridade. Gancho nos 5 primeiros segundos, entrega algo concreto até o final.
+→ Perfil RUAN — Motor de Crescimento: conteúdo rápido e leve, gancho no PRIMEIRO SEGUNDO. Reação a trends e memes gringos que ainda não chegaram no Brasil. O Ruan aparece, reage, mostra — sem intro, sem enrolação. Atrai público frio com volume e energia.
+→ Perfil OVERLENS — Autoridade: gancho nos primeiros 5 segundos, entrega algo concreto até o final (dica, revelação, resultado ou material). Antes de criar do zero, validar se um formato já performou. Converte o público frio que o Ruan atrai em seguidor engajado.
+→ A lógica: Ruan atrai → Overlens converte. São perfis opostos que se complementam.
+
+${OVERLENS_EDITORIAL_CONTEXT}
 
 GLOSSÁRIO — CORREÇÃO AUTOMÁTICA DE TRANSCRIÇÃO:
 Transcrições automáticas frequentemente erram nomes próprios e termos técnicos. Ao encontrar qualquer variação dos termos abaixo, corrija silenciosamente para a forma correta nos campos que você escreve (whyViral, suggestedOpening, hookJustification, etc). No excerpt, mantenha as palavras EXATAS da transcrição.
@@ -256,8 +325,14 @@ producaoDificuldade: classificação da dificuldade de produção.
 
 Ordene do maior para o menor score. Sem comentários fora do JSON.`
 
-// Prompt para gpt-4o-mini — analisa dados reais do Google Trends + YouTube
-export function getDataTrendsPrompt(googleTrends: GoogleTrendItem[], youtubeShorts: YouTubeShortItem[]) {
+// Prompt para gpt-4o-mini — analisa dados reais do Google Trends + YouTube + HN + Reddit
+export function getDataTrendsPrompt(
+  googleTrends: GoogleTrendItem[],
+  youtubeShorts: YouTubeShortItem[],
+  aiShorts?: YouTubeShortItem[],
+  hnTrends?: HackerNewsItem[],
+  redditTrends?: RedditBrItem[],
+) {
   const today = new Date().toLocaleDateString('pt-BR')
 
   const googleSection = googleTrends.length > 0
@@ -268,13 +343,34 @@ export function getDataTrendsPrompt(googleTrends: GoogleTrendItem[], youtubeShor
     ? youtubeShorts.map(s => `- "${s.title}" — ${s.channelTitle}`).join('\n')
     : '(sem dados)'
 
-  return `Analise os dados reais abaixo (${today}) e retorne as 5 melhores trends para o nicho de IA aplicada à criatividade, fotografia, design e produção de conteúdo.
+  const aiShortsSection = aiShorts && aiShorts.length > 0
+    ? aiShorts.map(s => `- "${s.title}" — ${s.channelTitle}`).join('\n')
+    : '(sem dados)'
+
+  const hnSection = hnTrends && hnTrends.length > 0
+    ? hnTrends.map(h => `- "${h.title}" (score: ${h.score})`).join('\n')
+    : '(sem dados)'
+
+  const redditSection = redditTrends && redditTrends.length > 0
+    ? redditTrends.map(r => `- "${r.title}" — r/${r.subreddit} (score: ${r.score})`).join('\n')
+    : '(sem dados)'
+
+  return `Analise os dados reais abaixo (${today}) e retorne entre 8 e 10 trends para o nicho de IA aplicada à criatividade, fotografia, design e produção de conteúdo. Retorne o máximo possível — prefira 10 a 8.
 
 GOOGLE TRENDS BRASIL (hoje):
 ${googleSection}
 
 YOUTUBE SHORTS (últimos 7 dias, ordenado por views):
 ${youtubeSection}
+
+YOUTUBE SHORTS IA (últimos 3 dias — shorts recentes especificamente sobre IA no Brasil, ordenado por views):
+${aiShortsSection}
+
+HACKER NEWS (discussões técnicas sobre IA em comunidades de tech — posts com score > 50):
+${hnSection}
+
+REDDIT BR (discussões em comunidades brasileiras de IA/dev — r/brdev, r/artificialintelligence, r/ChatGPT):
+${redditSection}
 
 JANELA TEMPORAL:
 - ABERTA (0-2 dias de crescimento): Entrar agora — janela aberta
@@ -299,28 +395,226 @@ Para cada trend, analise o FORMATO (não o assunto) sob as três dimensões:
 - pathos (0–2): qual emoção o formato ativa no público que consome — identifique a emoção dominante
 - logos (0–2): se há ângulo racional, dado ou evidência que o formato naturalmente carrega
 
-Retorne JSON: {"trends":[{"id":1,"rank":1,"rankScore":9,"rankJustification":"...","window":"ABERTA","platform":"YouTube Shorts","superficialSubject":"...","realFormat":"...","overlensAngle":"...","urgency":"...","rhetoric":{"ethos":{"score":2,"analysis":"..."},"pathos":{"score":2,"emotion":"curiosidade","analysis":"..."},"logos":{"score":1,"analysis":"..."}}}]}`
+Para cada dimensão retórica (ethos/pathos/logos), a análise deve ter no mínimo 2 frases:
+- O que especificamente nesse FORMATO (não no assunto) cria esse efeito
+- Como o criador da Overlens pode potencializar esse efeito ao executar
+
+HOOK E EXECUÇÃO:
+- hookAngle: frase de abertura pronta para usar nessa trend — direto no gancho, sem saudação
+- executionTip: como executar em 1–2 frases: formato, duração, o que mostrar, como abrir
+
+SATURAÇÃO:
+- saturationEstimate: estime quantos dias até essa trend saturar no Brasil e o volume de criadores já cobrindo. Baseie na janela temporal e nos dados disponíveis.
+  - daysRemaining: número de dias antes de saturar
+  - competitorVolume: "baixo" | "médio" | "alto"
+  - recommendation: "entrar agora" | "entrar com ângulo diferente" | "evitar"
+
+Retorne JSON: {"trends":[{"id":1,"rank":1,"rankScore":9,"rankJustification":"...","window":"ABERTA","platform":"YouTube Shorts","superficialSubject":"...","realFormat":"...","overlensAngle":"...","urgency":"...","hookAngle":"...","executionTip":"...","saturationEstimate":{"daysRemaining":3,"competitorVolume":"médio","recommendation":"entrar agora"},"rhetoric":{"ethos":{"score":2,"analysis":"..."},"pathos":{"score":2,"emotion":"curiosidade","analysis":"..."},"logos":{"score":1,"analysis":"..."}}}]}`
+}
+
+// Variante por perfil — usa as mesmas fontes mas ajusta critérios editoriais
+export function getDataTrendsPromptForProfile(
+  profile: 'ruan' | 'overlens',
+  googleTrends: GoogleTrendItem[],
+  youtubeShorts: YouTubeShortItem[],
+  aiShorts?: YouTubeShortItem[],
+  hnTrends?: HackerNewsItem[],
+  redditTrends?: RedditBrItem[],
+  phTrends?: ProductHuntItem[],
+  newsBr?: GoogleNewsItem[],
+) {
+  const today = new Date().toLocaleDateString('pt-BR')
+
+  const googleSection = googleTrends.length > 0
+    ? googleTrends.map(t => `- ${t.title}${t.traffic ? ` (${t.traffic} buscas)` : ''}`).join('\n')
+    : '(sem dados)'
+
+  const youtubeSection = youtubeShorts.length > 0
+    ? youtubeShorts.map(s => `- "${s.title}" — ${s.channelTitle}`).join('\n')
+    : '(sem dados)'
+
+  const aiShortsSection = aiShorts && aiShorts.length > 0
+    ? aiShorts.map(s => `- "${s.title}" — ${s.channelTitle}`).join('\n')
+    : '(sem dados)'
+
+  const hnSection = hnTrends && hnTrends.length > 0
+    ? hnTrends.map(h => `- "${h.title}" (score: ${h.score})`).join('\n')
+    : '(sem dados)'
+
+  const redditSection = redditTrends && redditTrends.length > 0
+    ? redditTrends.map(r => `- "${r.title}" — r/${r.subreddit} (score: ${r.score})`).join('\n')
+    : '(sem dados)'
+
+  const phSection = phTrends && phTrends.length > 0
+    ? phTrends.map(p => `- "${p.title}"${p.description ? ` — ${p.description.slice(0, 120)}` : ''}`).join('\n')
+    : '(sem dados)'
+
+  const newsSection = newsBr && newsBr.length > 0
+    ? newsBr.map(n => `- "${n.title}"${n.publishedAt ? ` (${n.publishedAt})` : ''}`).join('\n')
+    : '(sem dados)'
+
+  const isRuan = profile === 'ruan'
+  const upcomingDates = getUpcomingSeasonalDates()
+
+  const profileInstructions = isRuan
+    ? `PERFIL: RUAN — Motor de Crescimento
+O Ruan atrai público frio. Conteúdo rápido, leve, volume alto. Ele reage a trends, não explica — ele mostra.
+
+TIPOS DE CONTEÚDO que funcionam para o Ruan:
+- Memes do nicho que estão viralizando MUITO entre gringos no TikTok — traz pro Brasil antes de todo mundo
+- Reação a trends de foto, tech e criatividade usando fotos e vídeos do próprio Ruan (ex: Ruan mostrando o Multiverso dos Ruans, Ruan reagindo a série feita por IA)
+- Formato: o Ruan aparece, reage, comenta — primeira pessoa, presença, energia
+
+REGRAS para este perfil:
+- O gancho TEM que funcionar no PRIMEIRO SEGUNDO — sem intro, sem "olha isso", sem contexto. Começa no impacto.
+- Priorize MEMES e formatos que gringos estão viralizando — trends que ainda não chegaram no Brasil são ouro
+- rankScore: valorizar altamente janela ABERTA, meme-ability, formato de reação, energia emocional imediata
+- overlensAngle: "como o Ruan entra nessa trend" — com sua cara, seu estilo, suas fotos/vídeos já testados. Curto, direto, específico. Máx 2 frases.
+- hookAngles: 3 frases de abertura de no máximo 8 palavras cada. Sem contexto, sem transição — vai direto. Cada opção com estilo diferente: (1) declaração impactante, (2) pergunta que provoca, (3) afirmação que contraria o óbvio
+- executionTip: ritmo rápido, corte direto, Ruan na câmera reagindo ou mostrando. Duração: 15–30s. Pode usar humor, ironia, espanto.`
+    : `PERFIL: OVERLENS — Construção de Autoridade e Público
+A Overlens converte o público frio que o Ruan atrai. Conteúdo mais elaborado, que entrega algo concreto. A pessoa assiste até o final porque sabe que vai receber algo de valor.
+
+TIPOS DE CONTEÚDO que funcionam para a Overlens:
+- Vídeo que entrega algo concreto ao final: uma dica acionável, uma revelação, um resultado visível ou um material para download
+- Antes de criar do zero: revisar os reels da Overlens em estilo "conteúdo" — se um formato já tem muita view e alto engajamento, está validado. Usar de novo com tema diferente.
+- Publicar tudo no TikTok também
+
+REGRAS para este perfil:
+- O gancho precisa estar nos primeiros 5 SEGUNDOS — não precisa ser no primeiro segundo, mas precisa criar tensão ou promessa clara até os 5s
+- Priorize trends que permitem demonstrar expertise real — IA, criatividade, processo criativo, fotografia, design
+- rankScore: valorizar profundidade do tema, potencial de entrega concreta, alinhamento com autoridade Overlens
+- overlensAngle: "qual entrega concreta a Overlens faz com essa trend" — uma dica, um tutorial rápido, um resultado mostrado, um framework. Assertivo, com ponto de vista próprio. Máx 2 frases específicas.
+- hookAngles: 3 frases de abertura de 10–15 palavras que criam promessa ou tensão clara. Cada opção com estilo diferente: (1) declaração de autoridade com promessa, (2) dado ou fato que surpreende, (3) afirmação contraintuitiva que desafia o óbvio
+- executionTip: estrutura, dado, demonstração ou processo real visível. Começa no conflito ou afirmação forte. Duração: 45–90s. Entrega algo ao final.`
+
+  return `Analise os dados reais abaixo (${today}) e retorne entre 8 e 10 trends para o nicho de IA aplicada à criatividade, fotografia, design e produção de conteúdo. Retorne o máximo possível — prefira 10 a 8.
+
+${OVERLENS_EDITORIAL_CONTEXT}
+
+${profileInstructions}
+
+ESTRATÉGIA EDITORIAL — LEIA ANTES DE ANALISAR:
+A Overlens tem preferência por trends internacionais (EUA, Europa) que ainda não chegaram ou estão apenas começando no Brasil.
+O papel da Overlens é ser quem TRAZ essas trends para o público brasileiro — não quem cobre o que já explodiu localmente.
+- Brasil geralmente segue os EUA com 2–4 semanas de atraso em trends de IA/criatividade
+- Uma trend ABERTA nos EUA = janela ABERTA ou melhor no Brasil
+- overlensAngle deve sempre explicar como traduzir/adaptar essa trend internacional para o contexto e linguagem brasileira
+- Priorize trends que o público brasileiro ainda não viu — não as que já estão no feed de todo mundo no Brasil
+
+GOOGLE TRENDS EUA (hoje — mercado referência, 2-4 semanas à frente do Brasil):
+${googleSection}
+
+YOUTUBE SHORTS GLOBAL (últimos 3 dias, EUA — o que está explodindo antes de chegar no Brasil):
+${youtubeSection}
+
+YOUTUBE SHORTS IA — BR (últimos 3 dias — o que já chegou no Brasil, use para medir saturação local):
+${aiShortsSection}
+
+HACKER NEWS (discussões técnicas internacionais sobre IA — sinal antecipado de trends que virão):
+${hnSection}
+
+REDDIT (comunidades de IA/criatividade — internacional e BR):
+${redditSection}
+
+PRODUCT HUNT (lançamentos internacionais de ferramentas de IA/criatividade):
+${phSection}
+
+GOOGLE NEWS BR (artigos recentes sobre IA no Brasil — últimas 48h — use para medir o que já chegou localmente):
+${newsSection}
+${upcomingDates ? `\nDATAS COMEMORATIVAS PRÓXIMAS (próximos 30 dias):\n${upcomingDates}\n\nConsidere essas datas ao avaliar oportunidades de trend. Se uma trend se conecta a uma data próxima, mencione em overlensAngle e aumente o rankScore proporcionalmente à proximidade da data.\n` : ''}
+DISTRIBUIÇÃO DE JANELAS TEMPORAIS — OBRIGATÓRIO:
+Distribua as janelas de forma VARIADA. Não coloque tudo como ABERTA. Use esta lógica com rigor:
+- ABERTA: trend nasceu fora do Brasil, ainda não chegou aqui — janela de oportunidade real
+- FECHANDO: trend já está circulando no Brasil há 1–2 semanas, ainda dá pra pegar mas está saturando
+- FECHADA: trend já saturou no Brasil (meses de circulação, todo criador brasileiro já fez)
+Meta obrigatória: entre as 8–10 trends retornadas, inclua pelo menos 2 FECHANDO e 1 FECHADA.
+Uma análise honesta vai identificar que nem tudo está em janela aberta — isso aumenta a credibilidade do radar.
+
+JANELA TEMPORAL (avalie pelo mercado brasileiro, usando o internacional como referência):
+- ABERTA (trend gringa ainda não chegou no BR, ou chegando agora): Entrar agora — janela aberta
+- FECHANDO (chegando no BR há 3–5 dias, concorrência local crescendo): Vale entrar com ângulo diferente
+- FECHADA (já saturada no BR, todo criador brasileiro já fez): Apenas com ângulo completamente novo
+
+REGRAS:
+- Prefira trends internacionais que ainda não saturaram no Brasil — esse é o maior diferencial da Overlens
+- O FORMATO por baixo do tema dura semanas; o assunto dura 3 dias — identifique o formato
+- overlensAngle: como a Overlens traz essa trend internacional para o público brasileiro — com autoridade, contexto local e ponto de vista próprio
+- O conteúdo Overlens não é tradução: é adaptação com ângulo editorial original. Siga as instruções do perfil acima.
+- originCountry: identifique onde essa trend surgiu — "EUA" | "Brasil" | "Global" | "Europa"
+
+RANK DE OPORTUNIDADE:
+Para cada trend, calcule um score de oportunidade (0–10) e atribua um rank (1 = maior oportunidade):
+- rankScore: combina janela temporal (ABERTA > FECHANDO > FECHADA), alinhamento ao nicho Overlens e potencial de execução NO ESTILO DO PERFIL
+- rank: posição ordenada de 1 a N (1 = melhor oportunidade agora para este perfil)
+- rankJustification: 1 frase explicando por que está nessa posição para este perfil
+
+RETÓRICA DO FORMATO (Aristotélica):
+Para cada trend, analise o FORMATO (não o assunto) sob as três dimensões:
+- ethos (0–2): o quanto esse formato permite ao criador demonstrar autoridade e expertise no nicho
+- pathos (0–2): qual emoção o formato ativa no público que consome — identifique a emoção dominante
+- logos (0–2): se há ângulo racional, dado ou evidência que o formato naturalmente carrega
+
+Para cada dimensão retórica (ethos/pathos/logos), a análise deve ter no mínimo 2 frases:
+- O que especificamente nesse FORMATO (não no assunto) cria esse efeito
+- Como o criador pode potencializar esse efeito ao executar para o perfil ${isRuan ? 'Ruan' : 'Overlens'}
+
+HOOK E EXECUÇÃO:
+- hookAngles: array com 3 frases de abertura alternativas para usar nessa trend — siga as instruções do perfil acima. Cada opção deve ser uma abertura diferente para o mesmo gancho — variação de estilo, não de assunto:
+  - opção 1: direta e impactante, bate no problema
+  - opção 2: começa com dado ou pergunta retórica
+  - opção 3: começa com afirmação contraintuitiva
+- executionTip: como executar em 1–2 frases no estilo do perfil: formato, duração, o que mostrar, como abrir
+- publishingTip: melhor janela para publicar essa trend nessa plataforma — dia da semana e horário (ex: "terça/quinta 19h–21h"). Baseie no comportamento típico da audiência brasileira para esse tipo de formato.
+- seasonalConnection: se essa trend se conecta a uma data comemorativa próxima (listada abaixo), preencha com o nome da data e como se conecta (ex: "Dia das Mães — oportunidade de conteúdo sobre criação com propósito"). Omita o campo se não houver conexão relevante.
+
+SATURAÇÃO:
+- saturationEstimate: estime quantos dias até essa trend saturar no Brasil e o volume de criadores já cobrindo
+  - daysRemaining: número de dias antes de saturar
+  - competitorVolume: "baixo" | "médio" | "alto"
+  - recommendation: "entrar agora" | "entrar com ângulo diferente" | "evitar"
+
+META-TREND (opcional):
+Se 2 ou mais trends identificadas forem sintoma do mesmo fenômeno cultural mais amplo, adicione um campo "metaTrend" no JSON raiz:
+{
+  "metaTrend": {
+    "theme": "nome do fenômeno cultural em 4-6 palavras",
+    "description": "2-3 frases explicando o que essas trends têm em comum e o que revelam sobre o momento cultural",
+    "trendIds": [1, 3, 5],
+    "overlensOpportunity": "como a Overlens pode capitalizar nesse fenômeno maior, além das trends individuais"
+  }
+}
+Se não houver correlação clara, omita o campo metaTrend completamente.
+
+Retorne JSON: {"trends":[{"id":1,"rank":1,"rankScore":9,"rankJustification":"...","window":"ABERTA","platform":"YouTube Shorts","superficialSubject":"...","realFormat":"...","overlensAngle":"...","urgency":"...","hookAngles":["frase direta e impactante","pergunta retórica ou dado que surpreende","afirmação contraintuitiva"],"executionTip":"...","publishingTip":"terça/quinta 19h–21h","seasonalConnection":"Nome da data — como se conecta (omitir se não houver)","saturationEstimate":{"daysRemaining":3,"competitorVolume":"médio","recommendation":"entrar agora"},"rhetoric":{"ethos":{"score":2,"analysis":"..."},"pathos":{"score":2,"emotion":"curiosidade","analysis":"..."},"logos":{"score":1,"analysis":"..."}}}],"metaTrend":{"theme":"ansiedade criativa com IA","description":"...","trendIds":[1,3],"overlensOpportunity":"..."}}`
 }
 
 // Prompt para gpt-4o-search-preview — busca em tempo real no TikTok e Instagram
-export const SOCIAL_TRENDS_PROMPT = `Pesquise as tendências ATIVAS agora (hoje) no TikTok e Instagram Reels no nicho de IA aplicada à criatividade, fotografia, design e produção de conteúdo no Brasil.
+// Varia por perfil: Ruan busca memes/virais gringos para reagir; Overlens busca formatos educativos de autoridade.
 
-Não ranqueie o que já explodiu. Identifique o que está subindo e ainda não saturou.
+const SOCIAL_SHARED_SCHEMA = `
+DISTRIBUIÇÃO DE JANELAS TEMPORAIS — OBRIGATÓRIO:
+Distribua as janelas de forma VARIADA. Não coloque tudo como ABERTA. Use esta lógica com rigor:
+- ABERTA: trend nasceu fora do Brasil, ainda não chegou aqui — janela de oportunidade real
+- FECHANDO: trend já está circulando no Brasil há 1–2 semanas, ainda dá pra pegar mas está saturando
+- FECHADA: trend já saturou no Brasil (meses de circulação, todo criador brasileiro já fez)
+Meta obrigatória: entre as 8–10 trends retornadas, inclua pelo menos 2 FECHANDO e 1 FECHADA.
+Uma análise honesta vai identificar que nem tudo está em janela aberta — isso aumenta a credibilidade do radar.
 
-JANELA TEMPORAL:
-- ABERTA (0-2 dias de crescimento): Entrar agora — janela aberta
-- FECHANDO (3-5 dias): Vale entrar com ângulo diferente
-- FECHADA (6+ dias ou saturada): Apenas com ângulo completamente novo
+JANELA TEMPORAL (avalie pelo mercado brasileiro):
+- ABERTA (trend gringa ainda não chegou no BR): Entrar agora — janela aberta
+- FECHANDO (chegando no BR): Vale entrar com ângulo diferente
+- FECHADA (já saturada no BR): Apenas com ângulo completamente novo
 
 REGRAS:
 - O FORMATO por baixo do tema dura semanas; o assunto dura 3 dias — identifique o formato
-- overlensAngle: como a Overlens pode usar essa trend com autoridade no nicho de IA/criatividade
 - urgency: orientação de timing em 1 frase direta
-- Retorne exatamente 5 trends, começando o id em 6
+- originCountry: identifique onde essa trend surgiu — "EUA" | "Brasil" | "Global" | "Europa"
+- Retorne entre 8 e 10 trends, começando o id em 11. Prefira 10 a 8 — quanto mais trends de qualidade, melhor
 
 RANK DE OPORTUNIDADE:
-- rankScore: 0–10 combinando janela temporal, alinhamento ao nicho Overlens e potencial de execução
-- rank: posição de oportunidade (6 a 10, sequência dos 5 trends sociais)
+- rankScore: 0–10 combinando janela temporal, alinhamento ao perfil e potencial de execução
+- rank: posição de oportunidade sequencial (começa em 11)
 - rankJustification: 1 frase
 
 RETÓRICA DO FORMATO:
@@ -328,7 +622,57 @@ RETÓRICA DO FORMATO:
 - pathos (0–2): emoção dominante ativada no público + qual emoção
 - logos (0–2): ângulo racional ou baseado em dado que o formato carrega
 
-Retorne JSON: {"trends":[{"id":6,"rank":6,"rankScore":8,"rankJustification":"...","window":"ABERTA","platform":"TikTok","superficialSubject":"...","realFormat":"...","overlensAngle":"...","urgency":"...","rhetoric":{"ethos":{"score":1,"analysis":"..."},"pathos":{"score":2,"emotion":"identificação","analysis":"..."},"logos":{"score":1,"analysis":"..."}}}]}`
+Para cada dimensão retórica (ethos/pathos/logos), a análise deve ter no mínimo 2 frases:
+- O que especificamente nesse FORMATO (não no assunto) cria esse efeito
+- Como o criador pode potencializar esse efeito ao executar
+
+HOOK E EXECUÇÃO:
+- hookAngles: array com 3 frases de abertura alternativas para usar nessa trend — direto no gancho, sem saudação. Cada opção deve ser uma abertura diferente para o mesmo gancho — variação de estilo, não de assunto:
+  - opção 1: direta e impactante, bate no problema
+  - opção 2: começa com dado ou pergunta retórica
+  - opção 3: começa com afirmação contraintuitiva
+- executionTip: como executar em 1–2 frases: formato, duração, o que mostrar, como abrir
+
+SATURAÇÃO:
+- saturationEstimate: estime quantos dias até essa trend saturar no Brasil e o volume de criadores já cobrindo. Baseie na janela temporal e nos dados disponíveis.
+  - daysRemaining: número de dias antes de saturar
+  - competitorVolume: "baixo" | "médio" | "alto"
+  - recommendation: "entrar agora" | "entrar com ângulo diferente" | "evitar"
+
+Retorne JSON: {"trends":[{"id":11,"rank":11,"rankScore":8,"rankJustification":"...","window":"ABERTA","platform":"TikTok","superficialSubject":"...","realFormat":"...","overlensAngle":"...","urgency":"...","hookAngles":["frase direta e impactante","pergunta retórica ou dado que surpreende","afirmação contraintuitiva"],"executionTip":"...","saturationEstimate":{"daysRemaining":2,"competitorVolume":"baixo","recommendation":"entrar agora"},"rhetoric":{"ethos":{"score":1,"analysis":"..."},"pathos":{"score":2,"emotion":"identificação","analysis":"..."},"logos":{"score":1,"analysis":"..."}}}]}`
+
+export function getSocialTrendsPrompt(profile: 'ruan' | 'overlens'): string {
+  if (profile === 'ruan') {
+    return `Pesquise o que está explodindo no TikTok gringo (EUA) AGORA em memes de IA/tech, formatos virais e reações — o que o Ruan pode reagir ou replicar antes de todo mundo no Brasil.
+
+ESTRATÉGIA EDITORIAL — RUAN:
+O Ruan é um criador de crescimento: volume alto, leveza, gancho no primeiro segundo. Ele cobre o que os gringos estão fazendo que o Brasil ainda não copiou.
+- Busque especificamente: memes de IA/tech viralizando entre criadores gringos no TikTok AGORA
+- Priorize formatos de reação, compilações, POV, "quando você" — conteúdo de identificação imediata
+- overlensAngle deve explicar como o Ruan pode reagir ou replicar com seu estilo antes do Brasil acordar para essa trend
+- Prefira trends com janela ABERTA — o Ruan precisa ser o primeiro no Brasil
+
+PERFIL DE CONTEÚDO:
+- Tom: leve, rápido, identificação imediata
+- Formato ideal: reação, dueto, POV, "quando você faz X", trends de som
+- Gancho: primeiro segundo é tudo — sem intro, sem contexto, direto no momento engraçado ou surpreendente
+${SOCIAL_SHARED_SCHEMA}`
+  }
+
+  return `Pesquise as tendências ATIVAS agora (hoje) no TikTok e Instagram Reels no nicho de IA aplicada à criatividade, fotografia, design e produção de conteúdo.
+
+ESTRATÉGIA EDITORIAL — OVERLENS:
+Busque preferencialmente trends internacionais (EUA, Europa, criadores gringos) que ainda não chegaram ou estão apenas começando no Brasil.
+A Overlens é quem TRAZ essas trends para o público brasileiro com autoridade — não quem cobre o que já explodiu localmente.
+- Busque formatos educativos e tutoriais viralizando no TikTok/Instagram de criadores internacionais
+- Priorize: "como fazer X com IA", reveals de processo criativo, before/after com IA, demonstrações práticas
+- overlensAngle deve explicar como a Overlens traz esse formato para o Brasil com ângulo de autoridade próprio
+- Use isso para identificar o que chegará no Brasil nas próximas 1-3 semanas
+${SOCIAL_SHARED_SCHEMA}`
+}
+
+// Alias para não quebrar imports existentes
+export const SOCIAL_TRENDS_PROMPT = getSocialTrendsPrompt('overlens')
 
 export function getRoteiroPrompt(cut: unknown) {
   const c = cut as {
