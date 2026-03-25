@@ -13,6 +13,7 @@ import {
   getEarliestFetchedAt,
 } from '@/lib/trends-cache'
 import { LOADING_STEPS } from '@/lib/loading-steps'
+import { playDone } from '@/lib/sound'
 
 // ── localStorage keys ─────────────────────────────────────────────────────────
 
@@ -416,12 +417,13 @@ export default function TrendsPage() {
 
       // Persist to local cache
       const { saveSplitCaches } = await import('@/lib/trends-cache')
-      const at = saveSplitCaches(dataTrends, socialTrends)
+      const at = saveSplitCaches(dataTrends, socialTrends, profile)
 
       setResult({ trends: marked })
       setMetaTrend(fetchedMetaTrend ?? null)
       setNewCount(count)
       setFetchedAt(at)
+      playDone()
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Erro inesperado')
     } finally {

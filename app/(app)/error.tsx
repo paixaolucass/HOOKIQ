@@ -26,7 +26,7 @@ export default function Error({
           >
             Tentar novamente
           </button>
-          <Link href="/" className="text-xs text-[#444] hover:text-[#e5e5e5] transition-colors py-1.5">
+          <Link href="/trends" className="text-xs text-[#444] hover:text-[#e5e5e5] transition-colors py-1.5">
             Voltar ao início
           </Link>
         </div>

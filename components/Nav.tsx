@@ -6,8 +6,8 @@ import { createClient } from '@/lib/supabase/client'
 import { Zap, TrendingUp, History, Bookmark, LogOut } from 'lucide-react'
 
 const navItems = [
-  { href: '/', label: 'Análise', icon: Zap },
   { href: '/trends', label: 'Trends', icon: TrendingUp },
+  { href: '/analise', label: 'Análise', icon: Zap },
   { href: '/saved', label: 'Salvas', icon: Bookmark },
   { href: '/historico', label: 'Histórico', icon: History },
 ]

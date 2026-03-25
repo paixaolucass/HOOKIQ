@@ -170,7 +170,7 @@ export interface Roteiro {
 export interface Session {
   id: string
   user_id: string
-  type: 'transcription' | 'trends' | 'full' | 'trends_data' | 'trends_data_ruan' | 'trends_data_overlens' | 'trends_social' | 'saved_trend'
+  type: 'transcription' | 'trends' | 'full' | 'trends_data' | 'trends_data_ruan' | 'trends_data_overlens' | 'trends_social' | 'trends_social_ruan' | 'trends_social_overlens' | 'saved_trend'
   input?: string
   result: AnalysisResult & { trend?: Trend; status?: string }
   created_at: string

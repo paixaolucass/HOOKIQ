@@ -23,6 +23,8 @@ export default async function HistoricoPage() {
     trends_data_ruan: 'Trends Ruan',
     trends_data_overlens: 'Trends Overlens',
     trends_social: 'Trends Social',
+    trends_social_ruan: 'Trends Social (Ruan)',
+    trends_social_overlens: 'Trends Social (Overlens)',
     saved_trend: 'Trend salva',
   }
 
@@ -36,7 +38,7 @@ export default async function HistoricoPage() {
       {!sessions || sessions.length === 0 ? (
         <div className="text-sm text-[#444]">
           Nenhuma sessão ainda.{' '}
-          <Link href="/" className="text-[#e5e5e5] underline">Fazer primeira análise</Link>
+          <Link href="/analise" className="text-[#e5e5e5] underline">Fazer primeira análise</Link>
         </div>
       ) : (
         <div className="space-y-2">
