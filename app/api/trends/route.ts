@@ -114,8 +114,12 @@ function parseTrendsResult(source: string, raw: string): { trends: Trend[], meta
 
 // ── Deduplication ──────────────────────────────────────────────────────────────
 
+const TECH_SHORT_WORDS = new Set(['ai', 'ia', 'gpt', 'llm', 'api', 'rag', 'sdk', 'ux', 'ar', 'vr', 'ml'])
+
 function getSignificantWords(text: string): string[] {
-  return text.toLowerCase().split(/\s+/).filter(w => w.length > 4)
+  return text.toLowerCase().split(/\s+/).filter(w =>
+    w.length > 4 || TECH_SHORT_WORDS.has(w.replace(/[^a-z0-9]/g, ''))
+  )
 }
 
 function deduplicateTrends(trends: Trend[]): Trend[] {

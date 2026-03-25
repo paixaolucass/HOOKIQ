@@ -8,7 +8,7 @@ import CacheStatus from '@/components/CacheStatus'
 import { ChevronDown, ChevronUp, Copy, Check, GripVertical } from 'lucide-react'
 
 import {
-  loadTrendsCache,
+  loadMergedCacheResult,
   isAnyCacheExpired,
   getEarliestFetchedAt,
 } from '@/lib/trends-cache'
@@ -348,7 +348,7 @@ async function fetchTrendsForProfile(
 export default function TrendsPage() {
   const [result, setResult]           = useState<AnalysisResult | null>(null)
   const [metaTrend, setMetaTrend]     = useState<MetaTrend | null>(null)
-  const [fetchedAt, setFetchedAt]     = useState<string | null>(null)
+  const [fetchedAtMap, setFetchedAtMap] = useState<Record<string, string | null>>({ overlens: null, ruan: null })
   const [loading, setLoading]         = useState(false)
   const [loadingStep, setLoadingStep] = useState(LOADING_STEPS[0].label)
   const [error, setError]             = useState('')
@@ -367,11 +367,12 @@ export default function TrendsPage() {
   const dragIndexRef = useRef<number | null>(null)
 
   useEffect(() => {
-    const cache = loadTrendsCache()
-    if (!cache) return
-    setResult(cache.result)
-    setFetchedAt(cache.fetchedAt)
-  }, [])
+    const cached = loadMergedCacheResult(profile)
+    if (!cached) return
+    setResult(cached)
+    const at = getEarliestFetchedAt(profile)
+    if (at) setFetchedAtMap(prev => ({ ...prev, [profile]: at }))
+  }, [profile])
 
   useEffect(() => {
     const id = setInterval(() => setTick(t => t + 1), 60000)
@@ -393,7 +394,7 @@ export default function TrendsPage() {
   }, [result])
 
   async function fetchTrends(force = false) {
-    const expired = isAnyCacheExpired()
+    const expired = isAnyCacheExpired(profile)
     if (!force && !expired && result) return
 
     setError('')
@@ -422,7 +423,7 @@ export default function TrendsPage() {
       setResult({ trends: marked })
       setMetaTrend(fetchedMetaTrend ?? null)
       setNewCount(count)
-      setFetchedAt(at)
+      setFetchedAtMap(prev => ({ ...prev, [profile]: at }))
       playDone()
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Erro inesperado')
@@ -432,7 +433,7 @@ export default function TrendsPage() {
     }
   }
 
-  const expired   = isAnyCacheExpired()
+  const expired   = isAnyCacheExpired(profile)
   const hasResult = result?.trends && result.trends.length > 0
 
   const filteredTrends = orderedTrends.filter(t => {
@@ -505,7 +506,7 @@ export default function TrendsPage() {
         {(['overlens', 'ruan'] as Profile[]).map(p => (
           <button
             key={p}
-            onClick={() => setProfile(p)}
+            onClick={() => { setProfile(p); setError('') }}
             className={`px-4 py-2 min-h-[44px] text-xs font-medium border transition-colors uppercase tracking-wide touch-manipulation ${
               profile === p
                 ? 'border-white text-white'
@@ -530,7 +531,7 @@ export default function TrendsPage() {
 
       {/* Status do cache */}
       <CacheStatus
-        fetchedAt={fetchedAt}
+        fetchedAt={fetchedAtMap[profile]}
         expired={expired}
         onRefresh={() => fetchTrends(true)}
         className="mb-6"
@@ -673,7 +674,7 @@ export default function TrendsPage() {
                       >
                         <TrendCard
                           trend={trend}
-                          fetchedAt={fetchedAt ?? undefined}
+                          fetchedAt={fetchedAtMap[profile] ?? undefined}
                           dragHandle={
                             <GripVertical size={14} className="text-[#444] cursor-grab" />
                           }
@@ -682,7 +683,7 @@ export default function TrendsPage() {
                     )
                     : (
                       <div key={trend.id} id={`trend-card-${trend.id}`}>
-                        <TrendCard trend={trend} fetchedAt={fetchedAt ?? undefined} />
+                        <TrendCard trend={trend} fetchedAt={fetchedAtMap[profile] ?? undefined} />
                       </div>
                     )
                 ))

@@ -46,11 +46,16 @@ async function parseGoogleTrendsRSS(xml: string): Promise<GoogleTrendItem[]> {
   return items.slice(0, 20)
 }
 
+const GOOGLE_TRENDS_HEADERS = {
+  'User-Agent': 'Mozilla/5.0 (compatible; hookiq-trends/1.0)',
+  'Accept': 'application/rss+xml, application/xml, text/xml',
+}
+
 export async function fetchGoogleTrends(): Promise<GoogleTrendItem[]> {
   try {
     const res = await fetch(
       'https://trends.google.com/trends/trendingsearches/daily/rss?geo=BR',
-      { cache: 'no-store' }
+      { cache: 'no-store', headers: GOOGLE_TRENDS_HEADERS }
     )
     if (!res.ok) return []
     const xml = await res.text()
@@ -64,7 +69,7 @@ export async function fetchGoogleTrendsUS(): Promise<GoogleTrendItem[]> {
   try {
     const res = await fetch(
       'https://trends.google.com/trends/trendingsearches/daily/rss?geo=US',
-      { cache: 'no-store' }
+      { cache: 'no-store', headers: GOOGLE_TRENDS_HEADERS }
     )
     if (!res.ok) return []
     const xml = await res.text()
@@ -178,7 +183,7 @@ export async function fetchHackerNewsTrends(): Promise<HackerNewsItem[]> {
           )
           for (const item of results) {
             if (!item || typeof item.title !== 'string' || typeof item.score !== 'number') continue
-            if (item.score <= 50) continue
+            if (item.score <= 20) continue
             const titleLower = item.title.toLowerCase()
             if (!HN_KEYWORDS.some(kw => titleLower.includes(kw.toLowerCase()))) continue
             items.push({
@@ -326,7 +331,8 @@ export async function fetchAITrends(): Promise<YouTubeShortItem[]> {
   if (!apiKey) return []
 
   try {
-    const query = AI_QUERIES[Math.floor(Math.random() * AI_QUERIES.length)]
+    const dayIndex = Math.floor(Date.now() / (24 * 60 * 60 * 1000)) % AI_QUERIES.length
+    const query = AI_QUERIES[dayIndex]
     const publishedAfter = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString()
     const params = new URLSearchParams({
       part: 'snippet',

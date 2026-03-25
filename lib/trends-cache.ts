@@ -90,16 +90,14 @@ export function isSocialCacheValid(fetchedAt: string): boolean {
  * Returns the earliest-expiring fetchedAt among cached entries, or null if none.
  * CacheStatus should display this value so the user knows when the next refresh is due.
  */
-export function getEarliestFetchedAt(): string | null {
+export function getEarliestFetchedAt(profile?: 'ruan' | 'overlens'): string | null {
   const data   = loadDataCache()
-  const social = loadSocialCache()
+  const social = loadSocialCache(profile)
 
   if (!data && !social) return null
   if (data && !social)  return data.fetchedAt
   if (!data && social)  return social.fetchedAt
 
-  // Return the one that will expire first (the more recent fetch has less time remaining
-  // only if TTLs differ — pick the one with least remaining time)
   const dataRemaining   = DATA_CACHE_TTL   - (Date.now() - new Date(data!.fetchedAt).getTime())
   const socialRemaining = SOCIAL_CACHE_TTL - (Date.now() - new Date(social!.fetchedAt).getTime())
   return dataRemaining <= socialRemaining ? data!.fetchedAt : social!.fetchedAt
@@ -109,9 +107,9 @@ export function getEarliestFetchedAt(): string | null {
  * Returns the effective TTL for the cache entry that will expire first.
  * Used by remainingTime() so it uses the right TTL for the right entry.
  */
-export function getEarliestTTL(): number {
+export function getEarliestTTL(profile?: 'ruan' | 'overlens'): number {
   const data   = loadDataCache()
-  const social = loadSocialCache()
+  const social = loadSocialCache(profile)
 
   if (!data && !social) return SOCIAL_CACHE_TTL
   if (data && !social)  return DATA_CACHE_TTL
@@ -125,9 +123,9 @@ export function getEarliestTTL(): number {
 /**
  * True if ANY cached entry has expired (meaning a refresh is due).
  */
-export function isAnyCacheExpired(): boolean {
+export function isAnyCacheExpired(profile?: 'ruan' | 'overlens'): boolean {
   const data   = loadDataCache()
-  const social = loadSocialCache()
+  const social = loadSocialCache(profile)
   if (!data   || !isDataCacheValid(data.fetchedAt))     return true
   if (!social || !isSocialCacheValid(social.fetchedAt)) return true
   return false
@@ -136,9 +134,9 @@ export function isAnyCacheExpired(): boolean {
 // ── Merged result helpers ──────────────────────────────────────────────────────
 
 /** Build a merged AnalysisResult from both local caches (returns null if both empty). */
-export function loadMergedCacheResult(): AnalysisResult | null {
+export function loadMergedCacheResult(profile?: 'ruan' | 'overlens'): AnalysisResult | null {
   const data   = loadDataCache()
-  const social = loadSocialCache()
+  const social = loadSocialCache(profile)
 
   const dataTrends   = data?.trends   ?? []
   const socialTrends = social?.trends ?? []

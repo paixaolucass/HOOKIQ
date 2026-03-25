@@ -2,23 +2,28 @@ import type { GoogleTrendItem, YouTubeShortItem, HackerNewsItem, RedditBrItem, P
 
 // ── Sazonalidade — datas comemorativas brasileiras ─────────────────────────────
 
+function getNthSundayOfMonth(year: number, month: number, n: number): Date {
+  const first = new Date(year, month, 1)
+  const firstSunday = (7 - first.getDay()) % 7
+  return new Date(year, month, 1 + firstSunday + (n - 1) * 7)
+}
+
 function getUpcomingSeasonalDates(): string {
   const today = new Date()
   const year = today.getFullYear()
 
   const dates = [
-    { date: new Date(year, 0, 1),   name: 'Ano Novo' },
-    { date: new Date(year, 1, 12),  name: 'Dia dos Namorados (BR) - 12/06, aviso em fev' },
-    { date: new Date(year, 2, 8),   name: 'Dia Internacional da Mulher' },
-    { date: new Date(year, 3, 21),  name: 'Tiradentes' },
-    { date: new Date(year, 4, 11),  name: 'Dia das Mães (2º domingo de maio)' },
-    { date: new Date(year, 5, 12),  name: 'Dia dos Namorados' },
-    { date: new Date(year, 6, 13),  name: 'Dia dos Pais (2º domingo de agosto)' },
-    { date: new Date(year, 9, 12),  name: 'Dia das Crianças' },
-    { date: new Date(year, 9, 31),  name: 'Halloween' },
-    { date: new Date(year, 10, 15), name: 'Proclamação da República / Black Friday (aprox)' },
-    { date: new Date(year, 11, 25), name: 'Natal' },
-    { date: new Date(year, 11, 31), name: 'Réveillon' },
+    { date: new Date(year, 0, 1),                      name: 'Ano Novo' },
+    { date: new Date(year, 2, 8),                      name: 'Dia Internacional da Mulher' },
+    { date: new Date(year, 3, 21),                     name: 'Tiradentes' },
+    { date: getNthSundayOfMonth(year, 4, 2),           name: 'Dia das Mães (2º domingo de maio)' },
+    { date: new Date(year, 5, 12),                     name: 'Dia dos Namorados' },
+    { date: getNthSundayOfMonth(year, 7, 2),           name: 'Dia dos Pais (2º domingo de agosto)' },
+    { date: new Date(year, 9, 12),                     name: 'Dia das Crianças' },
+    { date: new Date(year, 9, 31),                     name: 'Halloween' },
+    { date: new Date(year, 10, 15),                    name: 'Proclamação da República / Black Friday (aprox)' },
+    { date: new Date(year, 11, 25),                    name: 'Natal' },
+    { date: new Date(year, 11, 31),                    name: 'Réveillon' },
   ]
 
   const upcoming = dates.filter(d => {
@@ -471,7 +476,8 @@ REGRAS para este perfil:
 - rankScore: valorizar altamente janela ABERTA, meme-ability, formato de reação, energia emocional imediata
 - overlensAngle: "como o Ruan entra nessa trend" — com sua cara, seu estilo, suas fotos/vídeos já testados. Curto, direto, específico. Máx 2 frases.
 - hookAngles: 3 frases de abertura de no máximo 8 palavras cada. Sem contexto, sem transição — vai direto. Cada opção com estilo diferente: (1) declaração impactante, (2) pergunta que provoca, (3) afirmação que contraria o óbvio
-- executionTip: ritmo rápido, corte direto, Ruan na câmera reagindo ou mostrando. Duração: 15–30s. Pode usar humor, ironia, espanto.`
+- executionTip: ritmo rápido, corte direto, Ruan na câmera reagindo ou mostrando. Duração: 15–30s. Pode usar humor, ironia, espanto.
+- PENALIZAR no rankScore: trends que exigem explicação longa, autoridade técnica ou conteúdo educativo denso — esses não funcionam para o Ruan.`
     : `PERFIL: OVERLENS — Construção de Autoridade e Público
 A Overlens converte o público frio que o Ruan atrai. Conteúdo mais elaborado, que entrega algo concreto. A pessoa assiste até o final porque sabe que vai receber algo de valor.
 
@@ -486,7 +492,8 @@ REGRAS para este perfil:
 - rankScore: valorizar profundidade do tema, potencial de entrega concreta, alinhamento com autoridade Overlens
 - overlensAngle: "qual entrega concreta a Overlens faz com essa trend" — uma dica, um tutorial rápido, um resultado mostrado, um framework. Assertivo, com ponto de vista próprio. Máx 2 frases específicas.
 - hookAngles: 3 frases de abertura de 10–15 palavras que criam promessa ou tensão clara. Cada opção com estilo diferente: (1) declaração de autoridade com promessa, (2) dado ou fato que surpreende, (3) afirmação contraintuitiva que desafia o óbvio
-- executionTip: estrutura, dado, demonstração ou processo real visível. Começa no conflito ou afirmação forte. Duração: 45–90s. Entrega algo ao final.`
+- executionTip: estrutura, dado, demonstração ou processo real visível. Começa no conflito ou afirmação forte. Duração: 45–90s. Entrega algo ao final.
+- PENALIZAR no rankScore: trends de meme puro, reação sem substância, virais sem ângulo educativo ou acionável — esses não constroem autoridade para a Overlens.`
 
   return `Analise os dados reais abaixo (${today}) e retorne entre 8 e 10 trends para o nicho de IA aplicada à criatividade, fotografia, design e produção de conteúdo. Retorne o máximo possível — prefira 10 a 8.
 
