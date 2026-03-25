@@ -18,7 +18,7 @@ export default function CacheStatus({ fetchedAt, expired, onRefresh, className =
           <p className="text-sm text-[#555]">Nenhuma busca realizada ainda</p>
         </div>
         <p className="text-xs text-[#333] text-right">
-          Resultado salvo por <span className="text-[#e5e5e5]">4h</span> após buscar.<br />
+          Resultado salvo por <span className="text-[#e5e5e5]">2h</span> após buscar.<br />
           Navegar entre abas não gera custo.
         </p>
       </div>
@@ -36,7 +36,7 @@ export default function CacheStatus({ fetchedAt, expired, onRefresh, className =
         <div className="text-right">
           <p className="text-xs text-[#555] mb-2">
             Próxima busca chama a IA.<br />
-            Novo cache de 4h será criado.
+            Novo cache de 2h será criado.
           </p>
           <button
             onClick={onRefresh}
