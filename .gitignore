@@ -44,3 +44,5 @@ next-env.d.ts
 # arquivos sensíveis locais
 APIS USADAS.txt
 Contas testes.txt
+
+.vercel

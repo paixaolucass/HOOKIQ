@@ -114,7 +114,7 @@ export default function HistoricoTrendsPage() {
         .from('sessions')
         .select('id, type, result, created_at')
         .eq('user_id', user.id)
-        .in('type', ['trends_data', 'trends_social', 'trends_data_ruan', 'trends_data_overlens'])
+        .in('type', ['trends_data', 'trends_social', 'trends_data_ruan', 'trends_data_overlens', 'trends_social_ruan', 'trends_social_overlens'])
         .order('created_at', { ascending: false })
         .limit(20)
 
