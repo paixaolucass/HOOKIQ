@@ -114,13 +114,13 @@ export function downloadAnalysisPDF(result: AnalysisResult) {
 
     const breakdownHTML = cut.scoreBreakdown ? `
       <div class="section-label">Análise por critério</div>
-      ${[
+      ${([
         ['Velocidade do gancho', cut.scoreBreakdown.hookSpeed],
         ['Independência de contexto', cut.scoreBreakdown.contextIndependence],
         ['Carga emocional', cut.scoreBreakdown.emotionalCharge],
         ['Poder de retenção', cut.scoreBreakdown.retentionPull],
         ['Alinhamento de nicho', cut.scoreBreakdown.nicheAlignment],
-      ].map(([label, c]: [string, any]) => `
+      ] as [string, typeof cut.scoreBreakdown.hookSpeed][]).map(([label, c]) => `
         <div class="score-row">
           <div class="score-label">
             ${label}<br>
