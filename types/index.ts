@@ -120,6 +120,7 @@ export interface SavedTrend {
   id: string
   userId: string
   trend: Trend
+  profile?: 'ruan' | 'overlens'
   status: 'salva' | 'gravando' | 'publicada'
   savedAt: string
   updatedAt: string
@@ -172,6 +173,6 @@ export interface Session {
   user_id: string
   type: 'transcription' | 'trends' | 'full' | 'trends_data' | 'trends_data_ruan' | 'trends_data_overlens' | 'trends_social' | 'trends_social_ruan' | 'trends_social_overlens' | 'saved_trend'
   input?: string
-  result: AnalysisResult & { trend?: Trend; status?: string }
+  result: AnalysisResult & { trend?: Trend; status?: string; profile?: 'ruan' | 'overlens'; performanceData?: PerformanceData }
   created_at: string
 }

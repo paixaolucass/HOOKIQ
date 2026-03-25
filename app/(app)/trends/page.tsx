@@ -14,6 +14,7 @@ import {
 } from '@/lib/trends-cache'
 import { LOADING_STEPS } from '@/lib/loading-steps'
 import { playDone } from '@/lib/sound'
+import Toast from '@/components/Toast'
 
 // ── localStorage keys ─────────────────────────────────────────────────────────
 
@@ -358,6 +359,7 @@ export default function TrendsPage() {
   const [filterPlatform, setFilterPlatform] = useState<FilterPlatform>('TODAS')
   const [newCount, setNewCount]       = useState(0)
   const [profile, setProfile]         = useState<Profile>('overlens')
+  const [toast, setToast]             = useState(false)
 
   // Reorder state
   const [reorderMode, setReorderMode]         = useState(false)
@@ -425,6 +427,7 @@ export default function TrendsPage() {
       setNewCount(count)
       setFetchedAtMap(prev => ({ ...prev, [profile]: at }))
       playDone()
+      setToast(true)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Erro inesperado')
     } finally {
@@ -493,6 +496,7 @@ export default function TrendsPage() {
 
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-8 py-10">
+      {toast && <Toast message="Trends prontas" onDone={() => setToast(false)} />}
       <div className="mb-6">
         <h1 className="text-xs text-[#444] tracking-widest uppercase mb-1">Módulo 2</h1>
         <h2 className="text-xl font-bold">Radar de Trends</h2>
@@ -675,6 +679,7 @@ export default function TrendsPage() {
                         <TrendCard
                           trend={trend}
                           fetchedAt={fetchedAtMap[profile] ?? undefined}
+                          profile={profile}
                           dragHandle={
                             <GripVertical size={14} className="text-[#444] cursor-grab" />
                           }
@@ -683,7 +688,7 @@ export default function TrendsPage() {
                     )
                     : (
                       <div key={trend.id} id={`trend-card-${trend.id}`}>
-                        <TrendCard trend={trend} fetchedAt={fetchedAtMap[profile] ?? undefined} />
+                        <TrendCard trend={trend} fetchedAt={fetchedAtMap[profile] ?? undefined} profile={profile} />
                       </div>
                     )
                 ))

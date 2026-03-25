@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/client'
 import type { Trend, SavedTrend, PerformanceData } from '@/types'
 
-export async function saveTrend(trend: Trend): Promise<void> {
+export async function saveTrend(trend: Trend, profile?: 'ruan' | 'overlens'): Promise<void> {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error('Não autenticado')
@@ -12,6 +12,7 @@ export async function saveTrend(trend: Trend): Promise<void> {
     type: 'saved_trend',
     result: {
       trend,
+      profile,
       status: 'salva',
       savedAt: now,
       updatedAt: now,
@@ -37,6 +38,7 @@ export async function getSavedTrends(): Promise<SavedTrend[]> {
     id: row.id,
     userId: row.user_id,
     trend: row.result.trend as Trend,
+    profile: row.result.profile as 'ruan' | 'overlens' | undefined,
     status: (row.result.status ?? 'salva') as SavedTrend['status'],
     savedAt: row.result.savedAt ?? row.created_at,
     updatedAt: row.result.updatedAt ?? row.created_at,

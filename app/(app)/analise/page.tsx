@@ -2,6 +2,7 @@
 
 import { useState, useRef } from 'react'
 import { playDone } from '@/lib/sound'
+import Toast from '@/components/Toast'
 import type { AnalysisResult, HookType, Destination } from '@/types'
 import CutCard from '@/components/CutCard'
 import ExportBar from '@/components/ExportBar'
@@ -19,6 +20,7 @@ export default function AnalisePage() {
   const [filterDest, setFilterDest]   = useState<FilterDest>('TODOS')
   const [filterType, setFilterType]   = useState<FilterType>('TODOS')
   const [filterScore, setFilterScore] = useState<FilterScore>(5)
+  const [toast, setToast] = useState(false)
 
   function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -55,6 +57,7 @@ export default function AnalisePage() {
       if (!res.ok) throw new Error(data.error || 'Erro na análise')
       setResult(data)
       playDone()
+      setToast(true)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Erro inesperado')
     } finally {
@@ -70,6 +73,7 @@ export default function AnalisePage() {
 
   return (
     <div className="max-w-3xl mx-auto px-8 py-10">
+      {toast && <Toast message="Análise pronta" onDone={() => setToast(false)} />}
       {/* Header */}
       <div className="mb-10">
         <h1 className="text-xs text-[#444] tracking-widest uppercase mb-1">Sistema Editorial</h1>

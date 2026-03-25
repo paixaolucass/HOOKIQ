@@ -296,10 +296,12 @@ export default function TrendCard({
   trend,
   dragHandle,
   fetchedAt,
+  profile,
 }: {
   trend: Trend
   dragHandle?: React.ReactNode
   fetchedAt?: string
+  profile?: 'ruan' | 'overlens'
 }) {
   const [expanded, setExpanded] = useState(false)
   const [saved, setSaved] = useState(false)
@@ -330,7 +332,7 @@ export default function TrendCard({
     if (saved || saving) return
     setSaving(true)
     try {
-      await saveTrend(trend)
+      await saveTrend(trend, profile)
       setSaved(true)
     } catch {
       // silently fail
@@ -345,7 +347,7 @@ export default function TrendCard({
     if (saving) return
     setSaving(true)
     try {
-      await saveTrend(trend)
+      await saveTrend(trend, profile)
       setSaved(true)
       setSavedFeedback(true)
       setTimeout(() => setSavedFeedback(false), 2000)

@@ -2,6 +2,18 @@ import { createClient } from '@/lib/supabase/server'
 import { Session } from '@/types'
 import Link from 'next/link'
 
+const STATUS_COLORS: Record<string, string> = {
+  salva:     '#555',
+  gravando:  '#eab308',
+  publicada: '#22c55e',
+}
+
+const ENGAGEMENT_COLORS: Record<string, string> = {
+  acima:    '#22c55e',
+  esperado: '#eab308',
+  abaixo:   '#ef4444',
+}
+
 export default async function HistoricoPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -49,7 +61,7 @@ export default async function HistoricoPage() {
               className="block border border-[#1a1a1a] bg-[#0d0d0d] px-5 py-4 flex items-center justify-between hover:border-[#2a2a2a] hover:bg-[#111] transition-colors"
             >
               <div className="space-y-1">
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 flex-wrap">
                   <span className="text-xs font-medium text-[#e5e5e5]">
                     {typeLabels[session.type] ?? session.type}
                   </span>
@@ -63,8 +75,32 @@ export default async function HistoricoPage() {
                       {session.result.trends.length} trends
                     </span>
                   )}
+                  {session.type === 'saved_trend' && session.result.status && (
+                    <span
+                      className="text-[10px] font-bold px-1.5 py-0.5 border uppercase tracking-wide"
+                      style={{ color: STATUS_COLORS[session.result.status] ?? '#555', borderColor: (STATUS_COLORS[session.result.status] ?? '#555') + '40' }}
+                    >
+                      {session.result.status}
+                    </span>
+                  )}
+                  {session.type === 'saved_trend' && session.result.performanceData && (
+                    <span
+                      className="text-[10px] font-bold px-1.5 py-0.5 border"
+                      style={{ color: ENGAGEMENT_COLORS[session.result.performanceData.engagement] ?? '#555', borderColor: (ENGAGEMENT_COLORS[session.result.performanceData.engagement] ?? '#555') + '40' }}
+                    >
+                      {session.result.performanceData.engagement}
+                      {session.result.performanceData.views24h
+                        ? ` · ${session.result.performanceData.views24h.toLocaleString('pt-BR')} views`
+                        : ''}
+                    </span>
+                  )}
                 </div>
-                {session.input && (
+                {session.type === 'saved_trend' && session.result.trend && (
+                  <p className="text-xs text-[#555] truncate max-w-md">
+                    {session.result.trend.superficialSubject} — {session.result.trend.platform}
+                  </p>
+                )}
+                {session.type !== 'saved_trend' && session.input && (
                   <p className="text-xs text-[#333] truncate max-w-md">
                     {session.input.slice(0, 80)}...
                   </p>

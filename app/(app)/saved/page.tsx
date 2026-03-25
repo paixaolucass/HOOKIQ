@@ -187,10 +187,13 @@ function StatsPanel({ items }: { items: SavedTrend[] }) {
 
 // ── Main page ─────────────────────────────────────────────────────────────────
 
+type ProfileFilter = 'todas' | 'ruan' | 'overlens'
+
 export default function SavedPage() {
   const [items, setItems]   = useState<SavedTrend[]>([])
   const [loading, setLoading] = useState(true)
   const [pendingPublish, setPendingPublish] = useState<SavedTrend | null>(null)
+  const [profileFilter, setProfileFilter] = useState<ProfileFilter>('todas')
 
   useEffect(() => {
     getSavedTrends().then(data => {
@@ -218,10 +221,14 @@ export default function SavedPage() {
     setPendingPublish(null)
   }
 
+  const filteredItems = profileFilter === 'todas'
+    ? items
+    : items.filter(i => i.profile === profileFilter)
+
   const byStatus = STATUS_ORDER.map(status => ({
     status,
     label: STATUS_LABELS[status],
-    items: items.filter(i => i.status === status),
+    items: filteredItems.filter(i => i.status === status),
   }))
 
   return (
@@ -244,20 +251,36 @@ export default function SavedPage() {
         </Link>
       </div>
 
-      {!loading && <StatsPanel items={items} />}
+      <div className="flex gap-2 mb-6">
+        {(['todas', 'overlens', 'ruan'] as ProfileFilter[]).map(p => (
+          <button
+            key={p}
+            onClick={() => setProfileFilter(p)}
+            className={`px-3 py-1.5 text-xs border transition-colors uppercase tracking-wide ${
+              profileFilter === p
+                ? 'border-[#444] text-[#e5e5e5]'
+                : 'border-[#1a1a1a] text-[#444] hover:text-[#777] hover:border-[#333]'
+            }`}
+          >
+            {p === 'todas' ? 'Todas' : p === 'overlens' ? 'Overlens' : 'Ruan'}
+          </button>
+        ))}
+      </div>
+
+      {!loading && <StatsPanel items={filteredItems} />}
 
       {loading && (
         <p className="text-xs text-[#444]">Carregando...</p>
       )}
 
-      {!loading && items.length === 0 && (
+      {!loading && filteredItems.length === 0 && (
         <div className="text-sm text-[#444]">
           Nenhuma trend salva ainda.{' '}
           <Link href="/trends" className="text-[#e5e5e5] underline">Ir para o Radar</Link>
         </div>
       )}
 
-      {!loading && items.length > 0 && (
+      {!loading && filteredItems.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {byStatus.map(({ status, label, items: col }) => (
             <div key={status}>
