@@ -364,9 +364,7 @@ export async function POST(request: NextRequest) {
     const ensureOriginCountry = (trends: Trend[]): Trend[] =>
       trends.map(t => ({
         ...t,
-        originCountry: (t as unknown as Record<string, unknown>).originCountry
-          ? (t as unknown as Record<string, unknown>).originCountry
-          : 'EUA',
+        originCountry: t.originCountry ?? ('EUA' as const),
       }))
 
     dataTrends   = ensureOriginCountry(dataTrends)
