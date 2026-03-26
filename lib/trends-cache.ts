@@ -3,8 +3,8 @@ import { AnalysisResult, Trend } from '@/types'
 export const CACHE_VERSION = '3'
 
 // TTLs
-export const DATA_CACHE_TTL   = 6 * 60 * 60 * 1000  // 6h — Google/YouTube/HN/Reddit
-export const SOCIAL_CACHE_TTL = 2 * 60 * 60 * 1000  // 2h — TikTok/Instagram
+export const DATA_CACHE_TTL   = 12 * 60 * 60 * 1000  // 12h — Google/YouTube/HN/Reddit
+export const SOCIAL_CACHE_TTL =  4 * 60 * 60 * 1000  //  4h — TikTok/Instagram
 
 // Per-profile data cache keys
 const DATA_CACHE_KEY_RUAN     = `hookiq_trends_data_ruan_v${CACHE_VERSION}`

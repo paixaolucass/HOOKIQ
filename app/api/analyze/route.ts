@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
       ],
       response_format: { type: 'json_object' },
       temperature: 0.3,
-      max_tokens: 10000,
+      max_tokens: 5000,
     })
 
     const result = JSON.parse(completion.choices[0].message.content ?? '{}')

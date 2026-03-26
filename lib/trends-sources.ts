@@ -53,7 +53,7 @@ async function parseGoogleTrendsRSS(xml: string): Promise<GoogleTrendItem[]> {
       })
     }
   }
-  return items.slice(0, 20)
+  return items.slice(0, 10)
 }
 
 const GOOGLE_TRENDS_HEADERS = {
@@ -101,7 +101,7 @@ export async function fetchYouTubeShorts(): Promise<YouTubeShortItem[]> {
       type: 'video',
       videoDuration: 'short',
       order: 'viewCount',
-      maxResults: '15',
+      maxResults: '8',
       regionCode: 'BR',
       publishedAfter,
       key: apiKey,
@@ -136,7 +136,7 @@ export async function fetchYouTubeShortsGlobal(): Promise<YouTubeShortItem[]> {
       type: 'video',
       videoDuration: 'short',
       order: 'viewCount',
-      maxResults: '15',
+      maxResults: '8',
       regionCode: 'US',
       relevanceLanguage: 'en',
       publishedAfter,
@@ -176,7 +176,7 @@ export async function fetchHackerNewsTrends(): Promise<HackerNewsItem[]> {
         const res = await fetch('https://hacker-news.firebaseio.com/v0/topstories.json', { cache: 'no-store' })
         if (!res.ok) return []
         const ids: number[] = await res.json()
-        const top30 = ids.slice(0, 30)
+        const top30 = ids.slice(0, 20)
 
         // Fetch items in parallel, max 15 at a time
         const chunks: number[][] = []
@@ -233,7 +233,7 @@ export async function fetchRedditBrTrends(): Promise<RedditBrItem[]> {
             subreddit: c.data?.subreddit ?? '',
           }))
           .filter((p: RedditBrItem) => p.score > 10 && p.title)
-          .slice(0, 10)
+          .slice(0, 6)
       })(),
       5000
     )
@@ -272,7 +272,7 @@ export async function fetchProductHuntTrends(): Promise<ProductHuntItem[]> {
           if (!PH_KEYWORDS.some(kw => combined.includes(kw.toLowerCase()))) continue
 
           items.push({ title, description })
-          if (items.length >= 10) break
+          if (items.length >= 6) break
         }
 
         return items
@@ -314,7 +314,7 @@ export async function fetchGoogleNewsBr(): Promise<GoogleNewsItem[]> {
           }
 
           items.push({ title, publishedAt })
-          if (items.length >= 15) break
+          if (items.length >= 8) break
         }
 
         return items
@@ -350,7 +350,7 @@ export async function fetchAITrends(): Promise<YouTubeShortItem[]> {
       type: 'video',
       videoDuration: 'short',
       order: 'viewCount',
-      maxResults: '10',
+      maxResults: '6',
       regionCode: 'BR',
       publishedAfter,
       key: apiKey,
@@ -396,7 +396,7 @@ export async function fetchArxivAI(): Promise<ArxivItem[]> {
           const combined = (title + ' ' + summary).toLowerCase()
           if (!ARXIV_KEYWORDS.some(kw => combined.includes(kw))) continue
           items.push({ title, summary })
-          if (items.length >= 8) break
+          if (items.length >= 5) break
         }
         return items
       })(),
@@ -413,7 +413,7 @@ export async function fetchDevToTrending(): Promise<DevToItem[]> {
     const result = await withTimeout(
       (async () => {
         const res = await fetch(
-          'https://dev.to/api/articles?top=3&per_page=12',
+          'https://dev.to/api/articles?top=3&per_page=8',
           { cache: 'no-store', headers: { 'User-Agent': 'hookiq-trends/1.0' } }
         )
         if (!res.ok) return []

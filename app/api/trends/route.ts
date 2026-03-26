@@ -317,7 +317,7 @@ export async function POST(request: NextRequest) {
               ],
               response_format: { type: 'json_object' },
               temperature: 0.4,
-              max_tokens: 8000,
+              max_tokens: 4000,
             })
             const raw = dataResult.choices[0].message.content ?? '{"trends":[]}'
             const { trends, metaTrend, errors } = parseTrendsResult('openai-data', raw)
@@ -340,7 +340,7 @@ export async function POST(request: NextRequest) {
                 { role: 'system', content: HOOKIQ_SYSTEM_PROMPT },
                 { role: 'user', content: getSocialTrendsPrompt(profile) },
               ],
-              max_tokens: 8000,
+              max_tokens: 4000,
             })
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const socialContent = (socialResult as any).choices[0].message.content ?? '{"trends":[]}'
