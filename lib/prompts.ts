@@ -554,6 +554,15 @@ Distribua as janelas de forma VARIADA. Não coloque tudo como ABERTA. Use esta l
 Meta obrigatória: entre as 8–10 trends retornadas, inclua pelo menos 2 FECHANDO e 1 FECHADA.
 Uma análise honesta vai identificar que nem tudo está em janela aberta — isso aumenta a credibilidade do radar.
 
+DIVERSIFICAÇÃO DE FONTES — OBRIGATÓRIO:
+Você recebeu dados de 9 fontes diferentes. As trends retornadas DEVEM refletir essa diversidade.
+- Máximo de 3 trends com origem primária em YouTube (entre as 8–10 retornadas)
+- Pelo menos 1 trend originada de HN ou Reddit
+- Pelo menos 1 trend originada de Google Trends EUA
+- Pelo menos 1 trend de arXiv, Dev.to, Product Hunt ou Google News
+- Se a maioria das trends for de YouTube, a análise é inválida — distribua as fontes
+No campo "platform" de cada trend, indique a fonte real que originou a trend (ex: "Hacker News", "Google Trends EUA", "Product Hunt", "Reddit", "arXiv", "Dev.to", "YouTube Shorts"). Nunca coloque "YouTube Shorts" em trends que vieram de outras fontes.
+
 JANELA TEMPORAL (avalie pelo mercado brasileiro, usando o internacional como referência):
 - ABERTA (trend gringa ainda não chegou no BR, ou chegando agora): Entrar agora — janela aberta
 - FECHANDO (chegando no BR há 3–5 dias, concorrência local crescendo): Vale entrar com ângulo diferente

@@ -506,10 +506,10 @@ export default function TrendsPage() {
   useEffect(() => {
     setIgnoredSubjects(loadIgnored(profile))
     const cached = loadMergedCacheResult(profile)
-    if (!cached) return
+    // Always update result — clear if no cache for this profile
     setResult(cached)
     const at = getEarliestFetchedAt(profile)
-    if (at) setFetchedAtMap(prev => ({ ...prev, [profile]: at }))
+    setFetchedAtMap(prev => ({ ...prev, [profile]: at }))
   }, [profile])
 
   useEffect(() => {

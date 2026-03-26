@@ -6,13 +6,17 @@ export const CACHE_VERSION = '3'
 export const DATA_CACHE_TTL   = 6 * 60 * 60 * 1000  // 6h — Google/YouTube/HN/Reddit
 export const SOCIAL_CACHE_TTL = 2 * 60 * 60 * 1000  // 2h — TikTok/Instagram
 
-// localStorage keys (versioned so old caches are discarded automatically)
-const DATA_CACHE_KEY   = `hookiq_trends_data_v${CACHE_VERSION}`
-const SOCIAL_CACHE_KEY = `hookiq_trends_social_v${CACHE_VERSION}`
+// Per-profile data cache keys
+const DATA_CACHE_KEY_RUAN     = `hookiq_trends_data_ruan_v${CACHE_VERSION}`
+const DATA_CACHE_KEY_OVERLENS = `hookiq_trends_data_overlens_v${CACHE_VERSION}`
 
 // Per-profile social cache keys
-export const SOCIAL_CACHE_KEY_RUAN    = `hookiq_trends_social_ruan_v${CACHE_VERSION}`
+export const SOCIAL_CACHE_KEY_RUAN     = `hookiq_trends_social_ruan_v${CACHE_VERSION}`
 export const SOCIAL_CACHE_KEY_OVERLENS = `hookiq_trends_social_overlens_v${CACHE_VERSION}`
+
+// Legacy (unprofile'd) keys — kept only so old entries can be evicted silently
+const LEGACY_DATA_CACHE_KEY   = `hookiq_trends_data_v${CACHE_VERSION}`
+const LEGACY_SOCIAL_CACHE_KEY = `hookiq_trends_social_v${CACHE_VERSION}`
 
 // ── Per-type cache entries ─────────────────────────────────────────────────────
 
@@ -22,25 +26,37 @@ export interface TrendsCacheEntry {
   fetchedAt: string
 }
 
-// ── Data cache (6h) ────────────────────────────────────────────────────────────
+function dataKey(profile?: 'ruan' | 'overlens'): string {
+  return profile === 'ruan' ? DATA_CACHE_KEY_RUAN : DATA_CACHE_KEY_OVERLENS
+}
 
-export function loadDataCache(): TrendsCacheEntry | null {
+function socialKey(profile?: 'ruan' | 'overlens'): string {
+  if (profile === 'ruan')     return SOCIAL_CACHE_KEY_RUAN
+  if (profile === 'overlens') return SOCIAL_CACHE_KEY_OVERLENS
+  return LEGACY_SOCIAL_CACHE_KEY
+}
+
+// ── Data cache (6h, per-profile) ───────────────────────────────────────────────
+
+export function loadDataCache(profile?: 'ruan' | 'overlens'): TrendsCacheEntry | null {
+  // Evict legacy shared key silently
+  localStorage.removeItem(LEGACY_DATA_CACHE_KEY)
   try {
-    const raw = localStorage.getItem(DATA_CACHE_KEY)
+    const raw = localStorage.getItem(dataKey(profile))
     if (!raw) return null
     const parsed = JSON.parse(raw) as TrendsCacheEntry
     if (parsed.version !== CACHE_VERSION) {
-      localStorage.removeItem(DATA_CACHE_KEY)
+      localStorage.removeItem(dataKey(profile))
       return null
     }
     return parsed
   } catch { return null }
 }
 
-export function saveDataCache(trends: Trend[]): string {
+export function saveDataCache(trends: Trend[], profile?: 'ruan' | 'overlens'): string {
   const fetchedAt = new Date().toISOString()
   const entry: TrendsCacheEntry = { version: CACHE_VERSION, trends, fetchedAt }
-  localStorage.setItem(DATA_CACHE_KEY, JSON.stringify(entry))
+  localStorage.setItem(dataKey(profile), JSON.stringify(entry))
   return fetchedAt
 }
 
@@ -48,20 +64,15 @@ export function isDataCacheValid(fetchedAt: string): boolean {
   return Date.now() - new Date(fetchedAt).getTime() < DATA_CACHE_TTL
 }
 
-// ── Social cache (2h) ──────────────────────────────────────────────────────────
+// ── Social cache (2h, per-profile) ─────────────────────────────────────────────
 
 export function loadSocialCache(profile?: 'ruan' | 'overlens'): TrendsCacheEntry | null {
-  const key = profile === 'ruan'
-    ? SOCIAL_CACHE_KEY_RUAN
-    : profile === 'overlens'
-      ? SOCIAL_CACHE_KEY_OVERLENS
-      : SOCIAL_CACHE_KEY
   try {
-    const raw = localStorage.getItem(key)
+    const raw = localStorage.getItem(socialKey(profile))
     if (!raw) return null
     const parsed = JSON.parse(raw) as TrendsCacheEntry
     if (parsed.version !== CACHE_VERSION) {
-      localStorage.removeItem(key)
+      localStorage.removeItem(socialKey(profile))
       return null
     }
     return parsed
@@ -69,11 +80,7 @@ export function loadSocialCache(profile?: 'ruan' | 'overlens'): TrendsCacheEntry
 }
 
 export function saveSocialCache(trends: Trend[], profile?: 'ruan' | 'overlens'): string {
-  const key = profile === 'ruan'
-    ? SOCIAL_CACHE_KEY_RUAN
-    : profile === 'overlens'
-      ? SOCIAL_CACHE_KEY_OVERLENS
-      : SOCIAL_CACHE_KEY
+  const key = socialKey(profile)
   const fetchedAt = new Date().toISOString()
   const entry: TrendsCacheEntry = { version: CACHE_VERSION, trends, fetchedAt }
   localStorage.setItem(key, JSON.stringify(entry))
@@ -88,10 +95,9 @@ export function isSocialCacheValid(fetchedAt: string): boolean {
 
 /**
  * Returns the earliest-expiring fetchedAt among cached entries, or null if none.
- * CacheStatus should display this value so the user knows when the next refresh is due.
  */
 export function getEarliestFetchedAt(profile?: 'ruan' | 'overlens'): string | null {
-  const data   = loadDataCache()
+  const data   = loadDataCache(profile)
   const social = loadSocialCache(profile)
 
   if (!data && !social) return null
@@ -105,10 +111,9 @@ export function getEarliestFetchedAt(profile?: 'ruan' | 'overlens'): string | nu
 
 /**
  * Returns the effective TTL for the cache entry that will expire first.
- * Used by remainingTime() so it uses the right TTL for the right entry.
  */
 export function getEarliestTTL(profile?: 'ruan' | 'overlens'): number {
-  const data   = loadDataCache()
+  const data   = loadDataCache(profile)
   const social = loadSocialCache(profile)
 
   if (!data && !social) return SOCIAL_CACHE_TTL
@@ -121,10 +126,10 @@ export function getEarliestTTL(profile?: 'ruan' | 'overlens'): number {
 }
 
 /**
- * True if ANY cached entry has expired (meaning a refresh is due).
+ * True if ANY cached entry for this profile has expired (meaning a refresh is due).
  */
 export function isAnyCacheExpired(profile?: 'ruan' | 'overlens'): boolean {
-  const data   = loadDataCache()
+  const data   = loadDataCache(profile)
   const social = loadSocialCache(profile)
   if (!data   || !isDataCacheValid(data.fetchedAt))     return true
   if (!social || !isSocialCacheValid(social.fetchedAt)) return true
@@ -135,7 +140,7 @@ export function isAnyCacheExpired(profile?: 'ruan' | 'overlens'): boolean {
 
 /** Build a merged AnalysisResult from both local caches (returns null if both empty). */
 export function loadMergedCacheResult(profile?: 'ruan' | 'overlens'): AnalysisResult | null {
-  const data   = loadDataCache()
+  const data   = loadDataCache(profile)
   const social = loadSocialCache(profile)
 
   const dataTrends   = data?.trends   ?? []
@@ -152,7 +157,7 @@ export function loadMergedCacheResult(profile?: 'ruan' | 'overlens'): AnalysisRe
 
 /** Save split trends back to localStorage from a full merged AnalysisResult. */
 export function saveSplitCaches(dataTrends: Trend[], socialTrends: Trend[], profile?: 'ruan' | 'overlens'): string {
-  const dataAt   = saveDataCache(dataTrends)
+  const dataAt   = saveDataCache(dataTrends, profile)
   const socialAt = saveSocialCache(socialTrends, profile)
   // Return the timestamp that will expire first
   const dataRemaining   = DATA_CACHE_TTL   - (Date.now() - new Date(dataAt).getTime())
@@ -161,7 +166,6 @@ export function saveSplitCaches(dataTrends: Trend[], socialTrends: Trend[], prof
 }
 
 // ── Legacy single-entry helpers (kept for backward compatibility) ──────────────
-// These now delegate to the split caches so existing call sites (page.tsx) keep working.
 
 /** @deprecated Use loadMergedCacheResult + isAnyCacheExpired instead. */
 export interface TrendsCache {
@@ -180,7 +184,6 @@ export function loadTrendsCache(): TrendsCache | null {
 
 /** @deprecated */
 export function isCacheValid(fetchedAt: string): boolean {
-  // Use the tightest TTL (social, 2h) for backward compatibility
   return !isAnyCacheExpired()
 }
 
@@ -216,13 +219,11 @@ export async function fetchTrendsWithCache(): Promise<[AnalysisResult, boolean]>
   const res = await fetch('/api/trends', { method: 'POST' })
   const data = await res.json()
   if (!res.ok) throw new Error(data.error || 'Erro ao buscar trends')
-  // The route now returns { trends, _dataTrends, _socialTrends } — split and cache
   const dt = (data._dataTrends  ?? []) as Trend[]
   const st = (data._socialTrends ?? []) as Trend[]
   if (dt.length > 0 || st.length > 0) {
     saveSplitCaches(dt, st)
   }
-  // Return the clean result (without internal _* fields)
   const clean: AnalysisResult = { trends: data.trends }
   return [clean, false]
 }
