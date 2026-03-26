@@ -1,10 +1,10 @@
 import { AnalysisResult, Trend } from '@/types'
 
-export const CACHE_VERSION = '3'
+export const CACHE_VERSION = '5'
 
 // TTLs
 export const DATA_CACHE_TTL   = 12 * 60 * 60 * 1000  // 12h — Google/YouTube/HN/Reddit
-export const SOCIAL_CACHE_TTL =  4 * 60 * 60 * 1000  //  4h — TikTok/Instagram
+export const SOCIAL_CACHE_TTL = 24 * 60 * 60 * 1000  // 24h — TikTok/Instagram (shared cache, 1 call/day)
 
 // Per-profile data cache keys
 const DATA_CACHE_KEY_RUAN     = `hookiq_trends_data_ruan_v${CACHE_VERSION}`
@@ -39,6 +39,7 @@ function socialKey(profile?: 'ruan' | 'overlens'): string {
 // ── Data cache (6h, per-profile) ───────────────────────────────────────────────
 
 export function loadDataCache(profile?: 'ruan' | 'overlens'): TrendsCacheEntry | null {
+  if (typeof window === 'undefined') return null
   // Evict legacy shared key silently
   localStorage.removeItem(LEGACY_DATA_CACHE_KEY)
   try {
@@ -67,6 +68,7 @@ export function isDataCacheValid(fetchedAt: string): boolean {
 // ── Social cache (2h, per-profile) ─────────────────────────────────────────────
 
 export function loadSocialCache(profile?: 'ruan' | 'overlens'): TrendsCacheEntry | null {
+  if (typeof window === 'undefined') return null
   try {
     const raw = localStorage.getItem(socialKey(profile))
     if (!raw) return null

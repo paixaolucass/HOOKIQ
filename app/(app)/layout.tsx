@@ -11,7 +11,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   return (
     <div className="min-h-screen flex bg-[#0a0a0a]">
       <Nav userEmail={user.email ?? ''} />
-      <main className="flex-1 ml-48 min-h-screen">
+      <main className="flex-1 md:ml-48 min-h-screen pb-16 md:pb-0">
         {children}
       </main>
     </div>

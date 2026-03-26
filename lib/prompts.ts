@@ -509,6 +509,16 @@ REGRAS para este perfil:
 
 ${OVERLENS_EDITORIAL_CONTEXT}
 
+ESPECIFICIDADE OBRIGATÓRIA — LEIA ANTES DE TUDO:
+Cada trend deve identificar algo CONCRETO e NOMEADO, não uma categoria.
+- BAD: "Tutorial de IA para fotografia" → GOOD: "Midjourney v7 — retratos estilo Wes Anderson viralizando no TikTok EUA"
+- BAD: "Ferramentas de IA para criadores" → GOOD: "Sora + narração em voz própria: criadores sobrepondo vídeos gerados ao rosto real"
+- BAD: "Uso de IA no design" → GOOD: "Adobe Firefly 3 — preenchimento contextual em logos: vídeos de antes/depois com 200k+ views"
+
+superficialSubject: DEVE conter o nome da ferramenta, técnica, criador, formato ou meme específico. Se não conseguir nomear especificamente, não inclua a trend.
+realFormat: DEVE descrever a mecânica do formato, não o gênero. Não "tutorial" — mas "split-screen antes/depois com narração over, 30–45s". Não "reação" — mas "criador reage ao vivo mostrando a própria tela, corte direto sem intro".
+trendEvidence: CAMPO OBRIGATÓRIO — 1 frase citando o dado concreto que prova que essa trend está em alta: qual fonte, qual volume, qual indicador. Ex: "4 vídeos nos top-20 do YouTube Shorts sobre Midjourney v7 esta semana" ou "Score 847 no HN com 200+ comentários sobre nova feature".
+
 ${profileInstructions}
 
 ESTRATÉGIA EDITORIAL — LEIA ANTES DE ANALISAR:
@@ -571,7 +581,7 @@ JANELA TEMPORAL (avalie pelo mercado brasileiro, usando o internacional como ref
 REGRAS:
 - Prefira trends internacionais que ainda não saturaram no Brasil — esse é o maior diferencial da Overlens
 - O FORMATO por baixo do tema dura semanas; o assunto dura 3 dias — identifique o formato
-- overlensAngle: como a Overlens traz essa trend internacional para o público brasileiro — com autoridade, contexto local e ponto de vista próprio
+- overlensAngle: deve conter (1) o que mostrar/falar exatamente — concreto e acionável — e (2) qual entrega o espectador recebe ao final. Não use "a Overlens pode trazer essa trend com autoridade" — isso é inútil. Diga o que fazer: "Mostrar prompt exato + resultado em 3 passos, 45s, termina com download do preset" ou "Ruan reage ao reveal do Sora mostrando a própria tentativa ao lado — corte direto, sem intro".
 - O conteúdo Overlens não é tradução: é adaptação com ângulo editorial original. Siga as instruções do perfil acima.
 - originCountry: identifique onde essa trend surgiu — "EUA" | "Brasil" | "Global" | "Europa"
 
@@ -618,7 +628,7 @@ Se 2 ou mais trends identificadas forem sintoma do mesmo fenômeno cultural mais
 }
 Se não houver correlação clara, omita o campo metaTrend completamente.
 
-Retorne JSON: {"trends":[{"id":1,"rank":1,"rankScore":9,"rankJustification":"...","window":"ABERTA","platform":"YouTube Shorts","superficialSubject":"...","realFormat":"...","overlensAngle":"...","urgency":"...","hookAngles":["frase direta e impactante","pergunta retórica ou dado que surpreende","afirmação contraintuitiva"],"executionTip":"...","publishingTip":"terça/quinta 19h–21h","seasonalConnection":"Nome da data — como se conecta (omitir se não houver)","saturationEstimate":{"daysRemaining":3,"competitorVolume":"médio","recommendation":"entrar agora"},"rhetoric":{"ethos":{"score":2,"analysis":"..."},"pathos":{"score":2,"emotion":"curiosidade","analysis":"..."},"logos":{"score":1,"analysis":"..."}}}],"metaTrend":{"theme":"ansiedade criativa com IA","description":"...","trendIds":[1,3],"overlensOpportunity":"..."}}`
+Retorne JSON: {"trends":[{"id":1,"rank":1,"rankScore":9,"rankJustification":"...","window":"ABERTA","platform":"YouTube Shorts","superficialSubject":"...","realFormat":"...","overlensAngle":"...","urgency":"...","trendEvidence":"dado concreto que prova que está em alta — fonte + volume/indicador","hookAngles":["frase direta e impactante","pergunta retórica ou dado que surpreende","afirmação contraintuitiva"],"executionTip":"...","publishingTip":"terça/quinta 19h–21h","seasonalConnection":"Nome da data — como se conecta (omitir se não houver)","saturationEstimate":{"daysRemaining":3,"competitorVolume":"médio","recommendation":"entrar agora"},"rhetoric":{"ethos":{"score":2,"analysis":"..."},"pathos":{"score":2,"emotion":"curiosidade","analysis":"..."},"logos":{"score":1,"analysis":"..."}}}],"metaTrend":{"theme":"ansiedade criativa com IA","description":"...","trendIds":[1,3],"overlensOpportunity":"..."}}`
 }
 
 // Prompt para gpt-4o-search-preview — busca em tempo real no TikTok e Instagram
@@ -643,6 +653,7 @@ REGRAS:
 - urgency: orientação de timing em 1 frase direta
 - originCountry: identifique onde essa trend surgiu — "EUA" | "Brasil" | "Global" | "Europa"
 - Retorne entre 8 e 10 trends, começando o id em 11. Prefira 10 a 8 — quanto mais trends de qualidade, melhor
+- overlensAngle: para trends de entretenimento/meme, começar com "Ruan:" e descrever como reagir/replicar com especificidade; para trends educativas, começar com "Overlens:" e descrever qual entrega concreta fazer. Se aplicável aos dois, separar: "Ruan: [ângulo] | Overlens: [ângulo]"
 
 RANK DE OPORTUNIDADE:
 - rankScore: 0–10 combinando janela temporal, alinhamento ao perfil e potencial de execução
@@ -671,7 +682,7 @@ SATURAÇÃO:
   - competitorVolume: "baixo" | "médio" | "alto"
   - recommendation: "entrar agora" | "entrar com ângulo diferente" | "evitar"
 
-Retorne JSON: {"trends":[{"id":11,"rank":11,"rankScore":8,"rankJustification":"...","window":"ABERTA","platform":"TikTok","superficialSubject":"...","realFormat":"...","overlensAngle":"...","urgency":"...","hookAngles":["frase direta e impactante","pergunta retórica ou dado que surpreende","afirmação contraintuitiva"],"executionTip":"...","saturationEstimate":{"daysRemaining":2,"competitorVolume":"baixo","recommendation":"entrar agora"},"rhetoric":{"ethos":{"score":1,"analysis":"..."},"pathos":{"score":2,"emotion":"identificação","analysis":"..."},"logos":{"score":1,"analysis":"..."}}}]}`
+Retorne JSON: {"trends":[{"id":11,"rank":11,"rankScore":8,"rankJustification":"...","window":"ABERTA","platform":"TikTok","superficialSubject":"...","realFormat":"...","overlensAngle":"...","urgency":"...","trendEvidence":"...","hookAngles":["frase direta e impactante","pergunta retórica ou dado que surpreende","afirmação contraintuitiva"],"executionTip":"...","saturationEstimate":{"daysRemaining":2,"competitorVolume":"baixo","recommendation":"entrar agora"},"rhetoric":{"ethos":{"score":1,"analysis":"..."},"pathos":{"score":2,"emotion":"identificação","analysis":"..."},"logos":{"score":1,"analysis":"..."}}}]}`
 
 export function getSocialTrendsPrompt(profile: 'ruan' | 'overlens'): string {
   if (profile === 'ruan') {
@@ -705,6 +716,31 @@ ${SOCIAL_SHARED_SCHEMA}`
 
 // Alias para não quebrar imports existentes
 export const SOCIAL_TRENDS_PROMPT = getSocialTrendsPrompt('overlens')
+
+/**
+ * Cache compartilhado entre perfis — 1 chamada/dia para ambos (Ruan + Overlens).
+ * Cobre os dois nichos: memes/virais gringos (Ruan) + tutoriais educativos de IA (Overlens).
+ */
+export function getSocialTrendsPromptShared(): string {
+  return `Pesquise o que está explodindo AGORA no TikTok e Instagram Reels no universo de IA, criatividade e tech — tanto memes/virais gringos (EUA) quanto formatos educativos e tutoriais.
+
+ESPECIFICIDADE OBRIGATÓRIA:
+- Nomeie a trend concretamente: qual som, challenge, formato de edição, ferramenta ou criador específico está viralizando
+- BAD: "IA para criadores no TikTok" → GOOD: "Sound 'I'm a Barbie Girl' remixado com avatares IA viralizando no TikTok EUA esta semana"
+- BAD: "tutorial de Midjourney" → GOOD: "Criadores mostrando galeria de 'eu em 50 estilos artísticos' com Midjourney — formato carrossel no Reels"
+- trendEvidence: cite a evidência concreta (hashtag com X posts, sound usado em Y vídeos, criador com Z views esta semana)
+
+ESCOPO DA BUSCA:
+Cubra os dois nichos em uma varredura só:
+1. NICHO ENTRETENIMENTO/REAÇÃO (TikTok EUA): memes de IA/tech viralizando, formatos de reação, POV, "quando você", compilações, trends de som com IA — o que criadores brasileiros ainda não copiaram
+2. NICHO EDUCATIVO/AUTORIDADE (TikTok + Instagram global): "como fazer X com IA", reveals de processo criativo, before/after com IA, demonstrações práticas de ferramentas — formatos que chegam no Brasil nas próximas 1-3 semanas
+
+DISTRIBUIÇÃO ESPERADA:
+- 4-5 trends do nicho entretenimento/reação (TikTok EUA)
+- 4-5 trends do nicho educativo/autoridade (internacional)
+- overlensAngle: para trends de entretenimento, explique como um criador de reação pode replicar; para trends educativas, explique como trazer com autoridade para o Brasil
+${SOCIAL_SHARED_SCHEMA}`
+}
 
 export function getRoteiroPrompt(cut: unknown) {
   const c = cut as {

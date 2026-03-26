@@ -8,9 +8,8 @@ const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient()
-    const { data: { session } } = await supabase.auth.getSession()
-    if (!session?.user) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
-    const user = session.user
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    if (authError || !user) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
 
     const body = await request.json()
     const { mode, transcription, cuts, trends, cut } = body

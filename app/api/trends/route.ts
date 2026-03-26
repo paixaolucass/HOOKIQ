@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import OpenAI from 'openai'
 import { createClient } from '@/lib/supabase/server'
-import { HOOKIQ_SYSTEM_PROMPT, getDataTrendsPrompt, getDataTrendsPromptForProfile, getSocialTrendsPrompt } from '@/lib/prompts'
+import { HOOKIQ_SYSTEM_PROMPT, getDataTrendsPrompt, getDataTrendsPromptForProfile, getSocialTrendsPromptShared } from '@/lib/prompts'
 import { fetchGoogleTrendsUS, fetchYouTubeShortsGlobal, fetchAITrends, fetchHackerNewsTrends, fetchRedditBrTrends, fetchProductHuntTrends, fetchGoogleNewsBr, fetchArxivAI, fetchDevToTrending } from '@/lib/trends-sources'
 import { DATA_CACHE_TTL, SOCIAL_CACHE_TTL } from '@/lib/trends-cache'
 import type { Trend, MetaTrend } from '@/types'
@@ -80,6 +80,30 @@ function parseMetaTrend(v: unknown): MetaTrend | undefined {
   }
 }
 
+/** Recover as many valid trend objects as possible from truncated JSON. */
+function recoverTruncatedTrends(raw: string): unknown[] {
+  const match = raw.match(/"trends"\s*:\s*\[/)
+  if (!match || match.index === undefined) return []
+
+  let remaining = raw.slice(match.index + match[0].length).trim()
+  const trends: unknown[] = []
+
+  while (remaining.startsWith('{')) {
+    let depth = 0
+    let i = 0
+    for (; i < remaining.length; i++) {
+      const ch = remaining[i]
+      if (ch === '{') depth++
+      else if (ch === '}') { depth--; if (depth === 0) { i++; break } }
+    }
+    try {
+      trends.push(JSON.parse(remaining.slice(0, i)))
+      remaining = remaining.slice(i).replace(/^\s*,\s*/, '').trim()
+    } catch { break }
+  }
+  return trends
+}
+
 function parseTrendsResult(source: string, raw: string): { trends: Trend[], metaTrend?: MetaTrend, errors: string[] } {
   const errors: string[] = []
   let parsed: unknown
@@ -87,8 +111,15 @@ function parseTrendsResult(source: string, raw: string): { trends: Trend[], meta
   try {
     parsed = JSON.parse(raw)
   } catch (e) {
-    errors.push(`${source}: JSON inválido — ${e instanceof Error ? e.message : String(e)}`)
-    return { trends: [], errors }
+    // JSON truncated by max_tokens — try to recover complete trend objects
+    const recovered = recoverTruncatedTrends(raw)
+    if (recovered.length > 0) {
+      errors.push(`${source}: JSON truncado, recuperados ${recovered.length} trends`)
+      parsed = { trends: recovered }
+    } else {
+      errors.push(`${source}: JSON inválido — ${e instanceof Error ? e.message : String(e)}`)
+      return { trends: [], errors }
+    }
   }
 
   const obj = parsed as Record<string, unknown>
@@ -180,16 +211,15 @@ async function loadSupabaseCache(
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient()
-    const { data: { session } } = await supabase.auth.getSession()
-    if (!session?.user) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
-    const user = session.user
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    if (authError || !user) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
 
     // ── Read profile from body ──────────────────────────────────────────────
     let body: { profile?: 'ruan' | 'overlens' } = {}
     try { body = await request.json() } catch { /* empty body is fine */ }
     const profile: 'ruan' | 'overlens' = body.profile === 'ruan' ? 'ruan' : 'overlens'
-    const dataCacheType   = profile === 'ruan' ? 'trends_data_ruan'   : 'trends_data_overlens'
-    const socialCacheType = profile === 'ruan' ? 'trends_social_ruan' : 'trends_social_overlens'
+    const dataCacheType   = profile === 'ruan' ? 'trends_data_ruan_v5'   : 'trends_data_overlens_v5'
+    const socialCacheType = 'trends_social_v5' // shared across profiles — 1 AI call/day max
 
     // ── Check split Supabase cache ──────────────────────────────────────────
     const [cachedData, cachedSocial] = await Promise.all([
@@ -197,28 +227,33 @@ export async function POST(request: NextRequest) {
       loadSupabaseCache(supabase, user.id, socialCacheType, SOCIAL_CACHE_TTL),
     ])
 
+    // Treat empty-trends cache entries as misses — prevents stale empty entries blocking fresh fetches
+    const effectiveCachedData   = (cachedData?.trends.length   ?? 0) > 0 ? cachedData   : null
+    const effectiveCachedSocial = (cachedSocial?.trends.length ?? 0) > 0 ? cachedSocial : null
+
     let dataTrends:   Trend[]
     let socialTrends: Trend[]
     let dataMetaTrend: MetaTrend | undefined
+    const _errors: string[] = []
 
-    if (cachedData && cachedSocial) {
+    if (effectiveCachedData && effectiveCachedSocial) {
       // Both caches valid — return merged without any AI call
-      const allTrends = deduplicateTrends([...cachedData.trends, ...cachedSocial.trends])
+      const allTrends = deduplicateTrends([...effectiveCachedData.trends, ...effectiveCachedSocial.trends])
       const reranked = allTrends
         .sort((a, b) => (b.rankScore ?? 0) - (a.rankScore ?? 0))
         .map((t, i) => ({ ...t, rank: i + 1 }))
       return NextResponse.json({
         trends: reranked,
-        metaTrend: cachedData.metaTrend,
-        _dataTrends: cachedData.trends,
-        _socialTrends: cachedSocial.trends,
+        metaTrend: effectiveCachedData.metaTrend,
+        _dataTrends: effectiveCachedData.trends,
+        _socialTrends: effectiveCachedSocial.trends,
       })
     }
 
-    if (cachedData) {
+    if (effectiveCachedData) {
       // Only data cache valid — only call social model
-      dataTrends = cachedData.trends
-      dataMetaTrend = cachedData.metaTrend
+      dataTrends = effectiveCachedData.trends
+      dataMetaTrend = effectiveCachedData.metaTrend
       socialTrends = await (async (): Promise<Trend[]> => {
         try {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -226,9 +261,9 @@ export async function POST(request: NextRequest) {
             model: 'gpt-4o-mini-search-preview',
             messages: [
               { role: 'system', content: HOOKIQ_SYSTEM_PROMPT },
-              { role: 'user', content: getSocialTrendsPrompt(profile) },
+              { role: 'user', content: getSocialTrendsPromptShared() },
             ],
-            max_tokens: 4000,
+            max_tokens: 6000,
           })
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const socialContent = (socialResult as any).choices[0].message.content ?? '{"trends":[]}'
@@ -246,9 +281,9 @@ export async function POST(request: NextRequest) {
       // Persist new social cache
       await supabase.from('sessions').insert({ user_id: user.id, type: socialCacheType, result: { trends: socialTrends } })
 
-    } else if (cachedSocial) {
+    } else if (effectiveCachedSocial) {
       // Only social cache valid — only call data model (needs to fetch sources first)
-      socialTrends = cachedSocial.trends
+      socialTrends = effectiveCachedSocial.trends
 
       const [googleTrends, youtubeShorts, aiShorts, hnTrends, redditTrends, phTrends, newsBr, arxivItems, devtoItems] = await Promise.all([
         fetchGoogleTrendsUS().catch(e => { console.error('[trends] Google Trends EUA falhou:', e instanceof Error ? e.message : String(e)); return [] as Awaited<ReturnType<typeof fetchGoogleTrendsUS>> }),
@@ -272,7 +307,7 @@ export async function POST(request: NextRequest) {
             ],
             response_format: { type: 'json_object' },
             temperature: 0.4,
-            max_tokens: 4000,
+            max_tokens: 8000,
           })
           const raw = dataResult.choices[0].message.content ?? '{"trends":[]}'
           const { trends, metaTrend, errors } = parseTrendsResult('openai-data', raw)
@@ -317,7 +352,7 @@ export async function POST(request: NextRequest) {
               ],
               response_format: { type: 'json_object' },
               temperature: 0.4,
-              max_tokens: 4000,
+              max_tokens: 8000,
             })
             const raw = dataResult.choices[0].message.content ?? '{"trends":[]}'
             const { trends, metaTrend, errors } = parseTrendsResult('openai-data', raw)
@@ -325,7 +360,9 @@ export async function POST(request: NextRequest) {
             rawDataMetaTrend = metaTrend
             return trends.map(t => ({ ...t, profile }))
           } catch (e) {
-            console.error('[trends] OpenAI data model falhou:', e instanceof Error ? e.message : String(e))
+            const msg = e instanceof Error ? e.message : String(e)
+            console.error('[trends] OpenAI data model falhou:', msg)
+            _errors.push(`data-model: ${msg}`)
             return []
           }
         })(),
@@ -338,9 +375,9 @@ export async function POST(request: NextRequest) {
               model: 'gpt-4o-mini-search-preview',
               messages: [
                 { role: 'system', content: HOOKIQ_SYSTEM_PROMPT },
-                { role: 'user', content: getSocialTrendsPrompt(profile) },
+                { role: 'user', content: getSocialTrendsPromptShared() },
               ],
-              max_tokens: 4000,
+              max_tokens: 6000,
             })
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const socialContent = (socialResult as any).choices[0].message.content ?? '{"trends":[]}'
@@ -350,7 +387,9 @@ export async function POST(request: NextRequest) {
             if (errors.length > 0) console.error('[trends] Erros de validação (search model):', errors)
             return trends.map(t => ({ ...t, profile }))
           } catch (e) {
-            console.error('[trends] OpenAI search model falhou:', e instanceof Error ? e.message : String(e))
+            const msg = e instanceof Error ? e.message : String(e)
+            console.error('[trends] OpenAI search model falhou:', msg)
+            _errors.push(`social-model: ${msg}`)
             return []
           }
         })(),
@@ -381,7 +420,7 @@ export async function POST(request: NextRequest) {
     // If both AI sources failed, return a clear degraded error
     if (dataTrends.length === 0 && socialTrends.length === 0) {
       return NextResponse.json(
-        { error: 'Nenhuma fonte de trends disponível no momento', source: 'all', details: 'Ambos os modelos de IA falharam ou retornaram dados inválidos' },
+        { error: 'Nenhuma fonte de trends disponível no momento', source: 'all', details: 'Ambos os modelos de IA falharam ou retornaram dados inválidos', _errors },
         { status: 503 }
       )
     }

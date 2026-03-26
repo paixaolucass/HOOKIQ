@@ -10,7 +10,8 @@ import { ChevronDown, ChevronUp, Copy, Check, GripVertical } from 'lucide-react'
 import {
   loadMergedCacheResult,
   isAnyCacheExpired,
-  getEarliestFetchedAt,
+  loadDataCache,
+  loadSocialCache,
 } from '@/lib/trends-cache'
 import { LOADING_STEPS } from '@/lib/loading-steps'
 import { playDone } from '@/lib/sound'
@@ -413,14 +414,14 @@ function CacheExplainer() {
               <div className="px-4 py-3 flex items-start gap-4">
                 <div className="flex-shrink-0 w-24 text-xs text-[#555] uppercase tracking-wide pt-0.5">Cache dados</div>
                 <div>
-                  <p className="text-sm text-[#e5e5e5] font-medium">6 horas</p>
+                  <p className="text-sm text-[#e5e5e5] font-medium">12 horas</p>
                   <p className="text-xs text-[#666] mt-0.5">Trends vindos de fontes abertas: Google, YouTube, Reddit, HN, arXiv, Dev.to. Mudam pouco ao longo do dia.</p>
                 </div>
               </div>
               <div className="px-4 py-3 flex items-start gap-4">
                 <div className="flex-shrink-0 w-24 text-xs text-[#555] uppercase tracking-wide pt-0.5">Cache social</div>
                 <div>
-                  <p className="text-sm text-[#e5e5e5] font-medium">2 horas</p>
+                  <p className="text-sm text-[#e5e5e5] font-medium">24 horas</p>
                   <p className="text-xs text-[#666] mt-0.5">Trends de TikTok e Instagram buscadas em tempo real pela IA. Mudam mais rápido, então expiram em menos tempo.</p>
                 </div>
               </div>
@@ -477,7 +478,10 @@ async function fetchTrendsForProfile(
 export default function TrendsPage() {
   const [result, setResult]           = useState<AnalysisResult | null>(null)
   const [metaTrend, setMetaTrend]     = useState<MetaTrend | null>(null)
-  const [fetchedAtMap, setFetchedAtMap] = useState<Record<string, string | null>>({ overlens: null, ruan: null })
+  const [cacheInfoMap, setCacheInfoMap] = useState<Record<string, { data: string | null; social: string | null }>>({
+    overlens: { data: null, social: null },
+    ruan:     { data: null, social: null },
+  })
   const [loading, setLoading]         = useState(false)
   const [loadingStep, setLoadingStep] = useState(LOADING_STEPS[0].label)
   const [error, setError]             = useState('')
@@ -508,8 +512,9 @@ export default function TrendsPage() {
     const cached = loadMergedCacheResult(profile)
     // Always update result — clear if no cache for this profile
     setResult(cached)
-    const at = getEarliestFetchedAt(profile)
-    setFetchedAtMap(prev => ({ ...prev, [profile]: at }))
+    const dataEntry   = loadDataCache(profile)
+    const socialEntry = loadSocialCache(profile)
+    setCacheInfoMap(prev => ({ ...prev, [profile]: { data: dataEntry?.fetchedAt ?? null, social: socialEntry?.fetchedAt ?? null } }))
   }, [profile])
 
   useEffect(() => {
@@ -555,13 +560,15 @@ export default function TrendsPage() {
       savePreviousTrends(trends)
 
       // Persist to local cache
-      const { saveSplitCaches } = await import('@/lib/trends-cache')
-      const at = saveSplitCaches(dataTrends, socialTrends, profile)
+      const { saveSplitCaches, loadDataCache: ldc, loadSocialCache: lsc } = await import('@/lib/trends-cache')
+      saveSplitCaches(dataTrends, socialTrends, profile)
+      const dataEntry2   = ldc(profile)
+      const socialEntry2 = lsc(profile)
 
       setResult({ trends: marked })
       setMetaTrend(fetchedMetaTrend ?? null)
       setNewCount(count)
-      setFetchedAtMap(prev => ({ ...prev, [profile]: at }))
+      setCacheInfoMap(prev => ({ ...prev, [profile]: { data: dataEntry2?.fetchedAt ?? null, social: socialEntry2?.fetchedAt ?? null } }))
       playDone()
       setToast(true)
       notifyDone('Trends prontas', `${marked.length} trends identificadas para ${profile === 'overlens' ? 'Overlens' : 'Ruan'}`)
@@ -689,7 +696,8 @@ export default function TrendsPage() {
 
       {/* Status do cache */}
       <CacheStatus
-        fetchedAt={fetchedAtMap[profile]}
+        dataFetchedAt={cacheInfoMap[profile].data}
+        socialFetchedAt={cacheInfoMap[profile].social}
         expired={expired}
         onRefresh={() => fetchTrends(true)}
         className="mb-3"
@@ -854,7 +862,7 @@ export default function TrendsPage() {
                       >
                         <TrendCard
                           trend={trend}
-                          fetchedAt={fetchedAtMap[profile] ?? undefined}
+                          fetchedAt={cacheInfoMap[profile].data ?? cacheInfoMap[profile].social ?? undefined}
                           profile={profile}
                           dragHandle={
                             <GripVertical size={14} className="text-[#444] cursor-grab" />
@@ -866,7 +874,7 @@ export default function TrendsPage() {
                       <div key={trend.id} id={`trend-card-${trend.id}`}>
                         <TrendCard
                           trend={trend}
-                          fetchedAt={fetchedAtMap[profile] ?? undefined}
+                          fetchedAt={cacheInfoMap[profile].data ?? cacheInfoMap[profile].social ?? undefined}
                           profile={profile}
                           onIgnore={() => handleIgnore(trend)}
                         />
