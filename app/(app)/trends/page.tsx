@@ -324,6 +324,93 @@ function MetaTrendCard({ metaTrend, onScrollToTrend }: { metaTrend: MetaTrend; o
   )
 }
 
+// ── Cache explainer modal ─────────────────────────────────────────────────────
+
+function CacheExplainer() {
+  const [open, setOpen] = useState(false)
+
+  return (
+    <>
+      <button
+        onClick={() => setOpen(true)}
+        className="mb-6 w-full text-left px-4 py-3 border border-[#1a1a1a] bg-[#0d0d0d] hover:bg-[#111] hover:border-[#2a2a2a] transition-colors group"
+      >
+        <span className="text-sm font-medium text-[#888] group-hover:text-[#e5e5e5] transition-colors">
+          Entenda o que são os caches
+        </span>
+        <span className="ml-2 text-xs text-[#444] group-hover:text-[#666] transition-colors">→</span>
+      </button>
+
+      {open && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 px-4"
+          onClick={() => setOpen(false)}
+        >
+          <div
+            className="bg-[#0d0d0d] border border-[#2a2a2a] w-full max-w-lg p-6 space-y-5"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-start justify-between gap-4">
+              <h2 className="text-base font-bold text-[#e5e5e5]">O que é o cache?</h2>
+              <button
+                onClick={() => setOpen(false)}
+                className="text-[#444] hover:text-[#e5e5e5] transition-colors text-lg leading-none flex-shrink-0"
+              >
+                ×
+              </button>
+            </div>
+
+            <p className="text-sm text-[#888] leading-relaxed">
+              Toda vez que você clica em <strong className="text-[#e5e5e5]">Buscar trends</strong>, o sistema consulta 9 fontes de dados (Google Trends, YouTube, Reddit, Hacker News, arXiv, e mais) e manda tudo para uma IA analisar. Esse processo leva até 40 segundos e consome créditos de API.
+            </p>
+
+            <p className="text-sm text-[#888] leading-relaxed">
+              O <strong className="text-[#e5e5e5]">cache</strong> é uma cópia salva do último resultado. Em vez de repetir toda essa operação a cada clique, o sistema guarda o resultado e reutiliza enquanto ainda é relevante. Assim a resposta é instantânea e você não desperdiça crédito.
+            </p>
+
+            <div className="border border-[#1a1a1a] divide-y divide-[#1a1a1a]">
+              <div className="px-4 py-3 flex items-start gap-4">
+                <div className="flex-shrink-0 w-24 text-xs text-[#555] uppercase tracking-wide pt-0.5">Cache dados</div>
+                <div>
+                  <p className="text-sm text-[#e5e5e5] font-medium">6 horas</p>
+                  <p className="text-xs text-[#666] mt-0.5">Trends vindos de fontes abertas: Google, YouTube, Reddit, HN, arXiv, Dev.to. Mudam pouco ao longo do dia.</p>
+                </div>
+              </div>
+              <div className="px-4 py-3 flex items-start gap-4">
+                <div className="flex-shrink-0 w-24 text-xs text-[#555] uppercase tracking-wide pt-0.5">Cache social</div>
+                <div>
+                  <p className="text-sm text-[#e5e5e5] font-medium">2 horas</p>
+                  <p className="text-xs text-[#666] mt-0.5">Trends de TikTok e Instagram buscadas em tempo real pela IA. Mudam mais rápido, então expiram em menos tempo.</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <p className="text-xs text-[#555] uppercase tracking-wide">O que aparece no indicador de cache</p>
+              <div className="space-y-1.5 text-xs text-[#666]">
+                <p><span className="text-[#22c55e]">Verde</span> — cache válido. Os dados foram buscados há pouco e o sistema está usando o resultado salvo.</p>
+                <p><span className="text-[#ef4444]">Vermelho</span> — cache expirado. A próxima busca vai buscar dados frescos.</p>
+                <p><span className="text-[#444]">Sem indicador</span> — nenhuma busca foi feita ainda para esse perfil neste dispositivo.</p>
+              </div>
+            </div>
+
+            <p className="text-xs text-[#444]">
+              O cache é separado por perfil — Overlens e Ruan têm resultados independentes.
+            </p>
+
+            <button
+              onClick={() => setOpen(false)}
+              className="w-full py-2.5 text-sm font-medium bg-white text-black hover:bg-[#e5e5e5] transition-colors"
+            >
+              Entendi
+            </button>
+          </div>
+        </div>
+      )}
+    </>
+  )
+}
+
 // ── Cache helpers that accept profile ─────────────────────────────────────────
 
 async function fetchTrendsForProfile(
@@ -538,8 +625,11 @@ export default function TrendsPage() {
         fetchedAt={fetchedAtMap[profile]}
         expired={expired}
         onRefresh={() => fetchTrends(true)}
-        className="mb-6"
+        className="mb-3"
       />
+
+      {/* Cache explanation */}
+      <CacheExplainer />
 
       {/* Link para histórico */}
       <div className="flex justify-end mb-6">
