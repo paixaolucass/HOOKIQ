@@ -42,9 +42,15 @@ export default async function HistoricoPage() {
 
   return (
     <div className="max-w-3xl mx-auto px-8 py-10">
-      <div className="mb-10">
-        <h1 className="text-xs text-[#444] tracking-widest uppercase mb-1">Conta</h1>
-        <h2 className="text-xl font-bold">Histórico</h2>
+      <div className="mb-8 flex items-start justify-between">
+        <div>
+          <h1 className="text-xs text-[#444] tracking-widest uppercase mb-1">Conta</h1>
+          <h2 className="text-xl font-bold">Histórico</h2>
+        </div>
+        <div className="flex gap-4 text-xs pt-1">
+          <Link href="/historico/analises" className="text-[#444] hover:text-[#e5e5e5] transition-colors">Análises</Link>
+          <Link href="/historico/trends" className="text-[#444] hover:text-[#e5e5e5] transition-colors">Trends</Link>
+        </div>
       </div>
 
       {!sessions || sessions.length === 0 ? (
