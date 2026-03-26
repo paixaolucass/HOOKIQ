@@ -2,6 +2,7 @@
 
 import { useState, useRef } from 'react'
 import { playDone } from '@/lib/sound'
+import { notifyDone } from '@/lib/notify'
 import Toast from '@/components/Toast'
 import type { AnalysisResult, HookType, Destination, CombinedOpportunity, Cut, Trend } from '@/types'
 import CutCard from '@/components/CutCard'
@@ -73,6 +74,7 @@ export default function AnalisePage() {
       setResult(data)
       playDone()
       setToast('Análise pronta')
+      notifyDone('Análise pronta', `${data.cuts?.length ?? 0} cortes identificados`)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Erro inesperado')
     } finally {
@@ -103,6 +105,7 @@ export default function AnalisePage() {
       setOpportunities(data.opportunities ?? [])
       playDone()
       setToast('Cruzamento pronto')
+      notifyDone('Cruzamento pronto', `${data.opportunities?.length ?? 0} oportunidades encontradas`)
     } catch (e) {
       setCrossError(e instanceof Error ? e.message : 'Erro inesperado')
     } finally {

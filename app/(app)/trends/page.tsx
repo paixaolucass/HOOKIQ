@@ -14,6 +14,7 @@ import {
 } from '@/lib/trends-cache'
 import { LOADING_STEPS } from '@/lib/loading-steps'
 import { playDone } from '@/lib/sound'
+import { notifyDone } from '@/lib/notify'
 import Toast from '@/components/Toast'
 
 // ── localStorage keys ─────────────────────────────────────────────────────────
@@ -23,10 +24,20 @@ const MANUAL_ORDER_KEY = 'hookiq_trends_manual_order'
 
 type FilterWindow   = TrendWindow | 'TODAS'
 type FilterPlatform = 'TODAS' | 'Google Trends' | 'YouTube Shorts' | 'TikTok' | 'Instagram' | 'Hacker News' | 'Reddit'
+type FilterOrigin   = 'TODAS' | 'Brasil' | 'EUA' | 'Global' | 'Europa'
 type Profile = 'ruan' | 'overlens'
 
 const WINDOW_OPTIONS:   FilterWindow[]   = ['TODAS', 'ABERTA', 'FECHANDO', 'FECHADA']
 const PLATFORM_OPTIONS: FilterPlatform[] = ['TODAS', 'Google Trends', 'YouTube Shorts', 'TikTok', 'Instagram', 'Hacker News', 'Reddit']
+const ORIGIN_OPTIONS:   FilterOrigin[]   = ['TODAS', 'Brasil', 'EUA', 'Global', 'Europa']
+
+const ORIGIN_LABELS: Record<FilterOrigin, string> = {
+  TODAS:  'Todas origens',
+  Brasil: '🇧🇷 BR',
+  EUA:    '🇺🇸 EUA',
+  Global: '🌐 Global',
+  Europa: '🇪🇺 Europa',
+}
 
 // ── New-trend detection helpers ───────────────────────────────────────────────
 
@@ -474,6 +485,7 @@ export default function TrendsPage() {
   const [, setTick]                   = useState(0)
   const [filterWindow, setFilterWindow]     = useState<FilterWindow>('TODAS')
   const [filterPlatform, setFilterPlatform] = useState<FilterPlatform>('TODAS')
+  const [filterOrigin, setFilterOrigin]     = useState<FilterOrigin>('TODAS')
   const [newCount, setNewCount]       = useState(0)
   const [profile, setProfile]         = useState<Profile>(() => {
     if (typeof window === 'undefined') return 'overlens'
@@ -552,6 +564,7 @@ export default function TrendsPage() {
       setFetchedAtMap(prev => ({ ...prev, [profile]: at }))
       playDone()
       setToast(true)
+      notifyDone('Trends prontas', `${marked.length} trends identificadas para ${profile === 'overlens' ? 'Overlens' : 'Ruan'}`)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Erro inesperado')
     } finally {
@@ -570,6 +583,9 @@ export default function TrendsPage() {
     if (filterWindow !== 'TODAS' && t.window !== filterWindow) return false
     if (filterPlatform !== 'TODAS') {
       if (!t.platform.toLowerCase().includes(filterPlatform.toLowerCase())) return false
+    }
+    if (filterOrigin !== 'TODAS') {
+      if ((t.originCountry ?? 'EUA') !== filterOrigin) return false
     }
     return true
   })
@@ -761,6 +777,25 @@ export default function TrendsPage() {
                     }`}
                   >
                     {p}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Origem */}
+            <div className="overflow-x-auto pb-1">
+              <div className="flex gap-1 whitespace-nowrap">
+                {ORIGIN_OPTIONS.map(o => (
+                  <button
+                    key={o}
+                    onClick={() => setFilterOrigin(o)}
+                    className={`px-2.5 py-2 min-h-[44px] text-xs border transition-colors touch-manipulation flex-shrink-0 ${
+                      filterOrigin === o
+                        ? 'border-[#444] text-[#e5e5e5]'
+                        : 'border-[#1a1a1a] text-[#444] hover:text-[#777] hover:border-[#333]'
+                    }`}
+                  >
+                    {ORIGIN_LABELS[o]}
                   </button>
                 ))}
               </div>

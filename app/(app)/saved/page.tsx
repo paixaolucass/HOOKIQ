@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import type { SavedTrend, PerformanceData } from '@/types'
+import type { SavedTrend, PerformanceData, TrendWindow } from '@/types'
 import { getSavedTrends, updateTrendStatus, savePerformanceData, getPerformanceStats } from '@/lib/saved-trends'
 import Link from 'next/link'
 
@@ -188,6 +188,7 @@ function StatsPanel({ items }: { items: SavedTrend[] }) {
 // ── Main page ─────────────────────────────────────────────────────────────────
 
 type ProfileFilter = 'todas' | 'ruan' | 'overlens'
+type WindowFilter = TrendWindow | 'todas'
 
 export default function SavedPage() {
   const [items, setItems]   = useState<SavedTrend[]>([])
@@ -195,6 +196,7 @@ export default function SavedPage() {
   const [pendingPublish, setPendingPublish] = useState<SavedTrend | null>(null)
   const [profileFilter, setProfileFilter] = useState<ProfileFilter>('todas')
   const [searchQuery, setSearchQuery] = useState('')
+  const [filterWindow, setFilterWindow] = useState<WindowFilter>('todas')
 
   useEffect(() => {
     getSavedTrends().then(data => {
@@ -224,6 +226,7 @@ export default function SavedPage() {
 
   const filteredItems = items
     .filter(i => profileFilter === 'todas' || i.profile === profileFilter)
+    .filter(i => filterWindow === 'todas' || i.trend.window === filterWindow)
     .filter(i => {
       if (!searchQuery.trim()) return true
       const q = searchQuery.toLowerCase()
@@ -284,6 +287,26 @@ export default function SavedPage() {
             {p === 'todas' ? 'Todas' : p === 'overlens' ? 'Overlens' : 'Ruan'}
           </button>
         ))}
+      </div>
+
+      <div className="flex gap-2 mb-6">
+        {(['todas', 'ABERTA', 'FECHANDO', 'FECHADA'] as WindowFilter[]).map(w => {
+          const colors: Record<string, string> = { ABERTA: '#22c55e', FECHANDO: '#eab308', FECHADA: '#ef4444' }
+          const active = filterWindow === w
+          return (
+            <button
+              key={w}
+              onClick={() => setFilterWindow(w)}
+              className="px-3 py-1.5 text-xs border transition-colors uppercase tracking-wide"
+              style={active
+                ? { borderColor: colors[w] ?? '#444', color: colors[w] ?? '#e5e5e5' }
+                : { borderColor: '#1a1a1a', color: '#444' }
+              }
+            >
+              {w === 'todas' ? 'Todas' : w}
+            </button>
+          )
+        })}
       </div>
 
       {!loading && <StatsPanel items={filteredItems} />}
