@@ -194,6 +194,7 @@ export default function SavedPage() {
   const [loading, setLoading] = useState(true)
   const [pendingPublish, setPendingPublish] = useState<SavedTrend | null>(null)
   const [profileFilter, setProfileFilter] = useState<ProfileFilter>('todas')
+  const [searchQuery, setSearchQuery] = useState('')
 
   useEffect(() => {
     getSavedTrends().then(data => {
@@ -221,9 +222,17 @@ export default function SavedPage() {
     setPendingPublish(null)
   }
 
-  const filteredItems = profileFilter === 'todas'
-    ? items
-    : items.filter(i => i.profile === profileFilter)
+  const filteredItems = items
+    .filter(i => profileFilter === 'todas' || i.profile === profileFilter)
+    .filter(i => {
+      if (!searchQuery.trim()) return true
+      const q = searchQuery.toLowerCase()
+      return (
+        i.trend.superficialSubject.toLowerCase().includes(q) ||
+        (i.trend.hookAngle ?? '').toLowerCase().includes(q) ||
+        i.trend.platform.toLowerCase().includes(q)
+      )
+    })
 
   const byStatus = STATUS_ORDER.map(status => ({
     status,
@@ -249,6 +258,16 @@ export default function SavedPage() {
         <Link href="/trends" className="text-xs text-[#444] hover:text-[#e5e5e5] transition-colors">
           Voltar para Radar
         </Link>
+      </div>
+
+      <div className="mb-4">
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={e => setSearchQuery(e.target.value)}
+          placeholder="Buscar por assunto, plataforma..."
+          className="w-full bg-[#0a0a0a] border border-[#1a1a1a] text-xs text-[#e5e5e5] px-3 py-2.5 focus:outline-none focus:border-[#333] placeholder-[#333] transition-colors"
+        />
       </div>
 
       <div className="flex gap-2 mb-6">

@@ -30,7 +30,10 @@ export default function AnalisePage() {
   const [crossLoading, setCrossLoading] = useState(false)
   const [crossError, setCrossError] = useState('')
   const [opportunities, setOpportunities] = useState<CombinedOpportunity[] | null>(null)
-  const [crossProfile, setCrossProfile] = useState<'ruan' | 'overlens'>('overlens')
+  const [crossProfile, setCrossProfile] = useState<'ruan' | 'overlens'>(() => {
+    if (typeof window === 'undefined') return 'overlens'
+    return (localStorage.getItem('hookiq_profile') as 'ruan' | 'overlens') ?? 'overlens'
+  })
 
   function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]

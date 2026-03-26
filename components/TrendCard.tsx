@@ -297,11 +297,13 @@ export default function TrendCard({
   dragHandle,
   fetchedAt,
   profile,
+  onIgnore,
 }: {
   trend: Trend
   dragHandle?: React.ReactNode
   fetchedAt?: string
   profile?: 'ruan' | 'overlens'
+  onIgnore?: () => void
 }) {
   const [expanded, setExpanded] = useState(false)
   const [saved, setSaved] = useState(false)
@@ -450,6 +452,16 @@ export default function TrendCard({
           </div>
           {/* Actions row */}
           <div className="flex items-center gap-2 flex-shrink-0 self-start sm:mt-1">
+            {/* Ignore button */}
+            {onIgnore && (
+              <button
+                onClick={e => { e.stopPropagation(); onIgnore() }}
+                title="Ignorar esta trend"
+                className="p-2 min-w-[44px] min-h-[44px] flex items-center justify-center text-[#2a2a2a] hover:text-[#ef4444] transition-colors touch-manipulation"
+              >
+                <span className="text-base leading-none">×</span>
+              </button>
+            )}
             {/* Assignment selector */}
             {resolvedFetchedAt && (
               <AssignmentSelector trendId={trend.id} fetchedAt={resolvedFetchedAt} />

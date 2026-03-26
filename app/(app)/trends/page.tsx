@@ -75,6 +75,36 @@ function saveManualOrder(ids: number[]) {
   localStorage.setItem(MANUAL_ORDER_KEY, JSON.stringify(ids))
 }
 
+// ── Ignored trends helpers ────────────────────────────────────────────────────
+
+function ignoredKey(profile: Profile) { return `hookiq_ignored_${profile}` }
+
+function loadIgnored(profile: Profile): string[] {
+  try {
+    const raw = localStorage.getItem(ignoredKey(profile))
+    return raw ? JSON.parse(raw) : []
+  } catch { return [] }
+}
+
+function saveIgnored(profile: Profile, subjects: string[]) {
+  localStorage.setItem(ignoredKey(profile), JSON.stringify(subjects))
+}
+
+function getSignificantWordsIgnore(text: string): string[] {
+  return text.toLowerCase().split(/\s+/).filter(w => w.length > 4)
+}
+
+function isIgnored(trend: Trend, ignoredSubjects: string[]): boolean {
+  if (ignoredSubjects.length === 0) return false
+  const wordsA = getSignificantWordsIgnore(trend.superficialSubject)
+  for (const subject of ignoredSubjects) {
+    const wordsB = getSignificantWordsIgnore(subject)
+    const common = wordsA.filter(w => wordsB.includes(w))
+    if (common.length >= 2) return true
+  }
+  return false
+}
+
 function applyManualOrder(trends: Trend[], order: number[]): Trend[] {
   const map = new Map(trends.map(t => [t.id, t]))
   const result: Trend[] = []
@@ -445,8 +475,14 @@ export default function TrendsPage() {
   const [filterWindow, setFilterWindow]     = useState<FilterWindow>('TODAS')
   const [filterPlatform, setFilterPlatform] = useState<FilterPlatform>('TODAS')
   const [newCount, setNewCount]       = useState(0)
-  const [profile, setProfile]         = useState<Profile>('overlens')
+  const [profile, setProfile]         = useState<Profile>(() => {
+    if (typeof window === 'undefined') return 'overlens'
+    return (localStorage.getItem('hookiq_profile') as Profile) ?? 'overlens'
+  })
   const [toast, setToast]             = useState(false)
+
+  // Ignored trends
+  const [ignoredSubjects, setIgnoredSubjects] = useState<string[]>([])
 
   // Reorder state
   const [reorderMode, setReorderMode]         = useState(false)
@@ -456,6 +492,7 @@ export default function TrendsPage() {
   const dragIndexRef = useRef<number | null>(null)
 
   useEffect(() => {
+    setIgnoredSubjects(loadIgnored(profile))
     const cached = loadMergedCacheResult(profile)
     if (!cached) return
     setResult(cached)
@@ -526,7 +563,10 @@ export default function TrendsPage() {
   const expired   = isAnyCacheExpired(profile)
   const hasResult = result?.trends && result.trends.length > 0
 
-  const filteredTrends = orderedTrends.filter(t => {
+  const visibleTrends = orderedTrends.filter(t => !isIgnored(t, ignoredSubjects))
+  const ignoredCount  = orderedTrends.length - visibleTrends.length
+
+  const filteredTrends = visibleTrends.filter(t => {
     if (filterWindow !== 'TODAS' && t.window !== filterWindow) return false
     if (filterPlatform !== 'TODAS') {
       if (!t.platform.toLowerCase().includes(filterPlatform.toLowerCase())) return false
@@ -566,6 +606,17 @@ export default function TrendsPage() {
     setReorderMode(false)
   }
 
+  function handleIgnore(trend: Trend) {
+    const next = [...ignoredSubjects, trend.superficialSubject]
+    setIgnoredSubjects(next)
+    saveIgnored(profile, next)
+  }
+
+  function handleRestoreIgnored() {
+    setIgnoredSubjects([])
+    saveIgnored(profile, [])
+  }
+
   function scrollToTrend(id: number) {
     const el = document.getElementById(`trend-card-${id}`)
     if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' })
@@ -597,7 +648,7 @@ export default function TrendsPage() {
         {(['overlens', 'ruan'] as Profile[]).map(p => (
           <button
             key={p}
-            onClick={() => { setProfile(p); setError('') }}
+            onClick={() => { setProfile(p); setError(''); localStorage.setItem('hookiq_profile', p) }}
             className={`px-4 py-2 min-h-[44px] text-xs font-medium border transition-colors uppercase tracking-wide touch-manipulation ${
               profile === p
                 ? 'border-white text-white'
@@ -662,9 +713,9 @@ export default function TrendsPage() {
               <span className="text-xs tracking-widest uppercase text-[#444]">Rank de trends</span>
               <div className="flex-1 border-t border-[#1a1a1a] sm:hidden" />
               <span className="text-xs text-[#333]">
-                {filteredTrends.length !== result!.trends!.length
-                  ? `${filteredTrends.length} de ${result!.trends!.length}`
-                  : `${result!.trends!.length} identificadas`
+                {filteredTrends.length !== visibleTrends.length
+                  ? `${filteredTrends.length} de ${visibleTrends.length}`
+                  : `${visibleTrends.length} identificadas`
                 }
               </span>
             </div>
@@ -778,13 +829,33 @@ export default function TrendsPage() {
                     )
                     : (
                       <div key={trend.id} id={`trend-card-${trend.id}`}>
-                        <TrendCard trend={trend} fetchedAt={fetchedAtMap[profile] ?? undefined} profile={profile} />
+                        <TrendCard
+                          trend={trend}
+                          fetchedAt={fetchedAtMap[profile] ?? undefined}
+                          profile={profile}
+                          onIgnore={() => handleIgnore(trend)}
+                        />
                       </div>
                     )
                 ))
               : <p className="text-xs text-[#444] py-4">Nenhuma trend com esses filtros.</p>
             }
           </div>
+
+          {/* Trends ignoradas */}
+          {ignoredCount > 0 && (
+            <div className="mt-4 flex items-center gap-3 text-xs">
+              <span className="text-[#333]">
+                {ignoredCount} trend{ignoredCount !== 1 ? 's' : ''} ignorada{ignoredCount !== 1 ? 's' : ''}
+              </span>
+              <button
+                onClick={handleRestoreIgnored}
+                className="text-[#444] hover:text-[#e5e5e5] underline transition-colors"
+              >
+                restaurar
+              </button>
+            </div>
+          )}
 
           {/* Formatos em alta */}
           {result!.trends && result!.trends.length > 0 && (
