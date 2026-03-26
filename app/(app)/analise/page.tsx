@@ -3,11 +3,12 @@
 import { useState, useRef } from 'react'
 import { playDone } from '@/lib/sound'
 import Toast from '@/components/Toast'
-import type { AnalysisResult, HookType, Destination, CombinedOpportunity } from '@/types'
+import type { AnalysisResult, HookType, Destination, CombinedOpportunity, Cut, Trend } from '@/types'
 import CutCard from '@/components/CutCard'
 import ExportBar from '@/components/ExportBar'
 import OpportunityAlert from '@/components/OpportunityAlert'
 import { loadMergedCacheResult } from '@/lib/trends-cache'
+import { saveTrend } from '@/lib/saved-trends'
 import Link from 'next/link'
 
 type FilterDest = Destination | 'TODOS'
@@ -104,6 +105,31 @@ export default function AnalisePage() {
     } finally {
       setCrossLoading(false)
     }
+  }
+
+  function cutToTrend(cut: Cut): Trend {
+    const platformMap: Record<string, string> = {
+      RUAN: 'TikTok / Instagram Reels',
+      OVERLENS: 'Instagram / YouTube',
+      AMBOS: 'TikTok / Instagram / YouTube',
+    }
+    return {
+      id: cut.id,
+      window: 'ABERTA',
+      platform: platformMap[cut.destination] ?? cut.destination,
+      superficialSubject: cut.suggestedOpening?.slice(0, 120) || cut.excerpt.slice(0, 120),
+      realFormat: cut.type,
+      overlensAngle: cut.whyViral,
+      urgency: `Score ${cut.score}/10`,
+      hookAngle: cut.suggestedOpening,
+      rankScore: cut.score,
+      originCountry: 'Brasil',
+    }
+  }
+
+  async function handleSaveCut(cut: Cut) {
+    const profile = cut.destination === 'RUAN' ? 'ruan' : cut.destination === 'OVERLENS' ? 'overlens' : undefined
+    await saveTrend(cutToTrend(cut), profile)
   }
 
   const filteredCuts = result?.cuts?.filter(c =>
@@ -250,7 +276,7 @@ export default function AnalisePage() {
 
               <div className="space-y-3">
                 {filteredCuts.length > 0
-                  ? filteredCuts.map(cut => <CutCard key={cut.id} cut={cut} />)
+                  ? filteredCuts.map(cut => <CutCard key={cut.id} cut={cut} onSave={() => handleSaveCut(cut)} />)
                   : <p className="text-xs text-[#444] py-4">Nenhum corte com esses filtros.</p>
                 }
               </div>

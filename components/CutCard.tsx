@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { Cut, ScoreCriterion, RhetoricalAnalysis, ProducaoDificuldade, Roteiro } from '@/types'
-import { Copy, Pencil, Check, X, ChevronDown, ChevronUp, FileText, Loader2 } from 'lucide-react'
+import { Copy, Pencil, Check, X, ChevronDown, ChevronUp, FileText, Loader2, Bookmark } from 'lucide-react'
 
 const hookColors: Record<string, string> = {
   'TENSÃO':     '#ef4444',
@@ -123,8 +123,9 @@ const producaoConfig: Record<ProducaoDificuldade, { color: string; label: string
   'PRODUÇÃO': { color: '#ef4444', label: 'PRODUÇÃO', desc: 'B-roll, motion, recursos visuais' },
 }
 
-export default function CutCard({ cut }: { cut: Cut }) {
+export default function CutCard({ cut, onSave }: { cut: Cut; onSave?: () => void }) {
   const [expanded, setExpanded]           = useState(false)
+  const [saved, setSaved]                 = useState(false)
   const [editing, setEditing]             = useState(false)
   const [editedOpening, setEditedOpening] = useState(cut.suggestedOpening ?? '')
   const [copied, setCopied]               = useState(false)
@@ -261,6 +262,18 @@ export default function CutCard({ cut }: { cut: Cut }) {
             )}
           </div>
           <div className="flex items-center gap-3 flex-shrink-0">
+            {onSave && (
+              <button
+                onClick={e => { e.stopPropagation(); if (!saved) { onSave(); setSaved(true) } }}
+                className={`flex items-center gap-1 px-2 py-1 text-xs border transition-colors ${
+                  saved ? 'border-[#22c55e] text-[#22c55e]' : 'border-[#1a1a1a] text-[#444] hover:text-[#e5e5e5] hover:border-[#333]'
+                }`}
+                title="Salvar corte"
+              >
+                <Bookmark size={10} />
+                {saved ? 'Salvo' : 'Salvar'}
+              </button>
+            )}
             <button
               onClick={e => { e.stopPropagation(); copyBrief() }}
               className={`flex items-center gap-1 px-2 py-1 text-xs border transition-colors ${
