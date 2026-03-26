@@ -579,6 +579,41 @@ export default function TrendCard({
             </div>
           )}
 
+          {/* Vídeos de referência */}
+          {trend.referenceVideos && trend.referenceVideos.length > 0 && (
+            <div className="space-y-2 pt-4 border-t border-[#111]">
+              <div className="flex flex-col gap-0.5">
+                <span className="text-xs text-[#333] uppercase tracking-widest">Vídeos modelo</span>
+                {trend.trendSource && (
+                  <span className="text-[10px] text-[#444]">fonte: {trend.trendSource}</span>
+                )}
+              </div>
+              <div className="space-y-1.5">
+                {trend.referenceVideos.map((url, idx) => {
+                  let label = url
+                  try {
+                    const u = new URL(url)
+                    const host = u.hostname.replace('www.', '')
+                    label = `${host}${u.pathname.slice(0, 30)}${u.pathname.length > 30 ? '…' : ''}`
+                  } catch { /* keep original */ }
+                  return (
+                    <a
+                      key={idx}
+                      href={url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 text-xs text-[#555] hover:text-[#aaa] transition-colors truncate"
+                      onClick={e => e.stopPropagation()}
+                    >
+                      <span className="font-mono text-[#333] flex-shrink-0">{idx + 1}.</span>
+                      <span className="truncate">{label}</span>
+                    </a>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
           {/* Publishing tip */}
           {trend.publishingTip && (
             <div className="space-y-1">

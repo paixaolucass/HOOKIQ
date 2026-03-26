@@ -1,11 +1,10 @@
 'use client'
 
-import { timeAgo, remainingTime, isDataCacheValid, isSocialCacheValid, DATA_CACHE_TTL, SOCIAL_CACHE_TTL } from '@/lib/trends-cache'
+import { useEffect, useState } from 'react'
+import { timeAgo, remainingTime, isDataCacheValid, isSocialCacheValid, DATA_CACHE_TTL, SOCIAL_CACHE_TTL, loadDataCache, loadSocialCache, isAnyCacheExpired } from '@/lib/trends-cache'
 
 interface CacheStatusProps {
-  dataFetchedAt: string | null
-  socialFetchedAt: string | null
-  expired: boolean
+  profile: 'ruan' | 'overlens'
   onRefresh: () => void
   className?: string
 }
@@ -39,10 +38,27 @@ function CacheRow({ label, fetchedAt, valid, ttlMs }: { label: string; fetchedAt
   )
 }
 
-export default function CacheStatus({ dataFetchedAt, socialFetchedAt, expired, onRefresh, className = 'mb-10' }: CacheStatusProps) {
-  const hasAny = dataFetchedAt || socialFetchedAt
+export default function CacheStatus({ profile, onRefresh, className = 'mb-10' }: CacheStatusProps) {
+  const [tick, setTick] = useState(0)
+
+  // Re-render every 30s to keep times live
+  useEffect(() => {
+    const id = setInterval(() => setTick(t => t + 1), 30_000)
+    return () => clearInterval(id)
+  }, [])
+
+  const dataEntry   = loadDataCache(profile)
+  const socialEntry = loadSocialCache(profile)
+  const dataFetchedAt   = dataEntry?.fetchedAt   ?? null
+  const socialFetchedAt = socialEntry?.fetchedAt ?? null
+
+  const hasAny      = !!(dataFetchedAt || socialFetchedAt)
   const dataValid   = dataFetchedAt   ? isDataCacheValid(dataFetchedAt)     : false
   const socialValid = socialFetchedAt ? isSocialCacheValid(socialFetchedAt) : false
+  const expired     = isAnyCacheExpired(profile)
+
+  // tick used only to trigger re-render — suppress lint warning
+  void tick
 
   if (!hasAny) {
     return (

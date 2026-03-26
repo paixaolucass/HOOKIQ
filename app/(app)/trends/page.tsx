@@ -457,7 +457,7 @@ function CacheExplainer() {
 
 async function fetchTrendsForProfile(
   profile: Profile,
-): Promise<{ trends: Trend[]; dataTrends: Trend[]; socialTrends: Trend[]; metaTrend?: MetaTrend }> {
+): Promise<{ trends: Trend[]; dataTrends: Trend[]; socialTrends: Trend[]; metaTrend?: MetaTrend; dataFetchedAt?: string; socialFetchedAt?: string }> {
   const res = await fetch('/api/trends', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -470,6 +470,8 @@ async function fetchTrendsForProfile(
     dataTrends: data._dataTrends ?? [],
     socialTrends: data._socialTrends ?? [],
     metaTrend: data.metaTrend,
+    dataFetchedAt: data._dataFetchedAt,
+    socialFetchedAt: data._socialFetchedAt,
   }
 }
 
@@ -491,10 +493,7 @@ export default function TrendsPage() {
   const [filterPlatform, setFilterPlatform] = useState<FilterPlatform>('TODAS')
   const [filterOrigin, setFilterOrigin]     = useState<FilterOrigin>('TODAS')
   const [newCount, setNewCount]       = useState(0)
-  const [profile, setProfile]         = useState<Profile>(() => {
-    if (typeof window === 'undefined') return 'overlens'
-    return (localStorage.getItem('hookiq_profile') as Profile) ?? 'overlens'
-  })
+  const [profile, setProfile]         = useState<Profile>('overlens')
   const [toast, setToast]             = useState(false)
 
   // Ignored trends
@@ -507,7 +506,18 @@ export default function TrendsPage() {
   const [orderChanged, setOrderChanged]       = useState(false)
   const dragIndexRef = useRef<number | null>(null)
 
+  // Restore saved profile from localStorage after hydration
   useEffect(() => {
+    const saved = localStorage.getItem('hookiq_profile') as Profile | null
+    if (saved === 'ruan' || saved === 'overlens') setProfile(saved)
+  }, [])
+
+  useEffect(() => {
+    // Cancel any in-progress loading from the previous profile
+    setLoading(false)
+    loadingTimersRef.current.forEach(clearTimeout)
+    loadingTimersRef.current = []
+
     setIgnoredSubjects(loadIgnored(profile))
     const cached = loadMergedCacheResult(profile)
     // Always update result — clear if no cache for this profile
@@ -515,6 +525,8 @@ export default function TrendsPage() {
     const dataEntry   = loadDataCache(profile)
     const socialEntry = loadSocialCache(profile)
     setCacheInfoMap(prev => ({ ...prev, [profile]: { data: dataEntry?.fetchedAt ?? null, social: socialEntry?.fetchedAt ?? null } }))
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profile])
 
   useEffect(() => {
@@ -550,34 +562,39 @@ export default function TrendsPage() {
       setTimeout(() => setLoadingStep(label), ms)
     )
 
+    const profileSnapshot = profile
+
     try {
       const previous = loadPreviousTrends()
-      const { trends, dataTrends, socialTrends, metaTrend: fetchedMetaTrend } = await fetchTrendsForProfile(profile)
+      const { trends, dataTrends, socialTrends, metaTrend: fetchedMetaTrend, dataFetchedAt, socialFetchedAt } = await fetchTrendsForProfile(profileSnapshot)
 
       const marked = markNewTrends(trends, previous)
       const count  = marked.filter(t => t.isNew).length
 
       savePreviousTrends(trends)
 
-      // Persist to local cache
+      // Persist to local cache using server timestamps so all devices stay in sync
       const { saveSplitCaches, loadDataCache: ldc, loadSocialCache: lsc } = await import('@/lib/trends-cache')
-      saveSplitCaches(dataTrends, socialTrends, profile)
-      const dataEntry2   = ldc(profile)
-      const socialEntry2 = lsc(profile)
+      saveSplitCaches(dataTrends, socialTrends, profileSnapshot, dataFetchedAt, socialFetchedAt)
+      const dataEntry2   = ldc(profileSnapshot)
+      const socialEntry2 = lsc(profileSnapshot)
 
       setResult({ trends: marked })
       setMetaTrend(fetchedMetaTrend ?? null)
       setNewCount(count)
-      setCacheInfoMap(prev => ({ ...prev, [profile]: { data: dataEntry2?.fetchedAt ?? null, social: socialEntry2?.fetchedAt ?? null } }))
+      setCacheInfoMap(prev => ({ ...prev, [profileSnapshot]: { data: dataEntry2?.fetchedAt ?? null, social: socialEntry2?.fetchedAt ?? null } }))
       playDone()
       setToast(true)
-      notifyDone('Trends prontas', `${marked.length} trends identificadas para ${profile === 'overlens' ? 'Overlens' : 'Ruan'}`)
+      notifyDone('Trends prontas', `${marked.length} trends identificadas para ${profileSnapshot === 'overlens' ? 'Overlens' : 'Ruan'}`)
+
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Erro inesperado')
     } finally {
       loadingTimersRef.current.forEach(clearTimeout)
+      loadingTimersRef.current = []
       setLoading(false)
     }
+
   }
 
   const expired   = isAnyCacheExpired(profile)
@@ -696,9 +713,7 @@ export default function TrendsPage() {
 
       {/* Status do cache */}
       <CacheStatus
-        dataFetchedAt={cacheInfoMap[profile].data}
-        socialFetchedAt={cacheInfoMap[profile].social}
-        expired={expired}
+        profile={profile}
         onRefresh={() => fetchTrends(true)}
         className="mb-3"
       />

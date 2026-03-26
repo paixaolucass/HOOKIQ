@@ -1,6 +1,6 @@
 import { AnalysisResult, Trend } from '@/types'
 
-export const CACHE_VERSION = '5'
+export const CACHE_VERSION = '15'
 
 // TTLs
 export const DATA_CACHE_TTL   = 12 * 60 * 60 * 1000  // 12h — Google/YouTube/HN/Reddit
@@ -54,11 +54,11 @@ export function loadDataCache(profile?: 'ruan' | 'overlens'): TrendsCacheEntry |
   } catch { return null }
 }
 
-export function saveDataCache(trends: Trend[], profile?: 'ruan' | 'overlens'): string {
-  const fetchedAt = new Date().toISOString()
-  const entry: TrendsCacheEntry = { version: CACHE_VERSION, trends, fetchedAt }
+export function saveDataCache(trends: Trend[], profile?: 'ruan' | 'overlens', fetchedAt?: string): string {
+  const at = fetchedAt ?? new Date().toISOString()
+  const entry: TrendsCacheEntry = { version: CACHE_VERSION, trends, fetchedAt: at }
   localStorage.setItem(dataKey(profile), JSON.stringify(entry))
-  return fetchedAt
+  return at
 }
 
 export function isDataCacheValid(fetchedAt: string): boolean {
@@ -81,12 +81,11 @@ export function loadSocialCache(profile?: 'ruan' | 'overlens'): TrendsCacheEntry
   } catch { return null }
 }
 
-export function saveSocialCache(trends: Trend[], profile?: 'ruan' | 'overlens'): string {
-  const key = socialKey(profile)
-  const fetchedAt = new Date().toISOString()
-  const entry: TrendsCacheEntry = { version: CACHE_VERSION, trends, fetchedAt }
-  localStorage.setItem(key, JSON.stringify(entry))
-  return fetchedAt
+export function saveSocialCache(trends: Trend[], profile?: 'ruan' | 'overlens', fetchedAt?: string): string {
+  const at = fetchedAt ?? new Date().toISOString()
+  const entry: TrendsCacheEntry = { version: CACHE_VERSION, trends, fetchedAt: at }
+  localStorage.setItem(socialKey(profile), JSON.stringify(entry))
+  return at
 }
 
 export function isSocialCacheValid(fetchedAt: string): boolean {
@@ -158,9 +157,9 @@ export function loadMergedCacheResult(profile?: 'ruan' | 'overlens'): AnalysisRe
 }
 
 /** Save split trends back to localStorage from a full merged AnalysisResult. */
-export function saveSplitCaches(dataTrends: Trend[], socialTrends: Trend[], profile?: 'ruan' | 'overlens'): string {
-  const dataAt   = saveDataCache(dataTrends, profile)
-  const socialAt = saveSocialCache(socialTrends, profile)
+export function saveSplitCaches(dataTrends: Trend[], socialTrends: Trend[], profile?: 'ruan' | 'overlens', dataFetchedAt?: string, socialFetchedAt?: string): string {
+  const dataAt   = saveDataCache(dataTrends, profile, dataFetchedAt)
+  const socialAt = saveSocialCache(socialTrends, profile, socialFetchedAt)
   // Return the timestamp that will expire first
   const dataRemaining   = DATA_CACHE_TTL   - (Date.now() - new Date(dataAt).getTime())
   const socialRemaining = SOCIAL_CACHE_TTL - (Date.now() - new Date(socialAt).getTime())

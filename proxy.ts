@@ -30,6 +30,10 @@ export async function proxy(request: NextRequest) {
                        request.nextUrl.pathname.startsWith('/signup')
 
     if (!user && !isAuthPage) {
+      // API routes handle their own auth — don't redirect, let them return 401
+      if (request.nextUrl.pathname.startsWith('/api/')) {
+        return supabaseResponse
+      }
       const url = request.nextUrl.clone()
       url.pathname = '/login'
       return NextResponse.redirect(url)
@@ -49,5 +53,5 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico|api).*)'],
+  matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
 }

@@ -682,7 +682,11 @@ SATURAÇÃO:
   - competitorVolume: "baixo" | "médio" | "alto"
   - recommendation: "entrar agora" | "entrar com ângulo diferente" | "evitar"
 
-Retorne JSON: {"trends":[{"id":11,"rank":11,"rankScore":8,"rankJustification":"...","window":"ABERTA","platform":"TikTok","superficialSubject":"...","realFormat":"...","overlensAngle":"...","urgency":"...","trendEvidence":"...","hookAngles":["frase direta e impactante","pergunta retórica ou dado que surpreende","afirmação contraintuitiva"],"executionTip":"...","saturationEstimate":{"daysRemaining":2,"competitorVolume":"baixo","recommendation":"entrar agora"},"rhetoric":{"ethos":{"score":1,"analysis":"..."},"pathos":{"score":2,"emotion":"identificação","analysis":"..."},"logos":{"score":1,"analysis":"..."}}}]}`
+VÍDEOS DE REFERÊNCIA:
+- referenceVideos: array com exatamente 5 URLs reais de vídeos desta trend que você encontrou na busca — use apenas links que você verificou existirem (TikTok, Instagram Reels ou YouTube Shorts). Se encontrar menos de 5, inclua quantos encontrar. Se não encontrar nenhum, omita o campo.
+- trendSource: onde você encontrou evidência desta trend — ex: "TikTok search #aigirl — 2.3M posts", "Instagram Reels explore page — 40+ criadores", "YouTube Shorts trending BR — 800k views médio"
+
+Retorne JSON: {"trends":[{"id":11,"rank":11,"rankScore":8,"rankJustification":"...","window":"ABERTA","platform":"TikTok","superficialSubject":"...","realFormat":"...","overlensAngle":"...","urgency":"...","trendEvidence":"...","trendSource":"TikTok search #aigirl — 2.3M posts","hookAngles":["frase direta e impactante","pergunta retórica ou dado que surpreende","afirmação contraintuitiva"],"executionTip":"...","referenceVideos":["https://www.tiktok.com/@user/video/1","https://www.tiktok.com/@user/video/2","https://www.tiktok.com/@user/video/3","https://www.instagram.com/reel/abc","https://www.instagram.com/reel/def"],"saturationEstimate":{"daysRemaining":2,"competitorVolume":"baixo","recommendation":"entrar agora"},"rhetoric":{"ethos":{"score":1,"analysis":"..."},"pathos":{"score":2,"emotion":"identificação","analysis":"..."},"logos":{"score":1,"analysis":"..."}}}]}`
 
 export function getSocialTrendsPrompt(profile: 'ruan' | 'overlens'): string {
   if (profile === 'ruan') {

@@ -94,6 +94,8 @@ export interface Trend {
   isNew?: boolean
   profile?: 'ruan' | 'overlens'
   seasonalConnection?: string
+  referenceVideos?: string[]
+  trendSource?: string
 }
 
 export interface MetaTrend {
