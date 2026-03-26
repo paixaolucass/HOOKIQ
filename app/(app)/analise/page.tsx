@@ -8,6 +8,7 @@ import CutCard from '@/components/CutCard'
 import ExportBar from '@/components/ExportBar'
 import OpportunityAlert from '@/components/OpportunityAlert'
 import { loadMergedCacheResult } from '@/lib/trends-cache'
+import Link from 'next/link'
 
 type FilterDest = Destination | 'TODOS'
 type FilterType = HookType | 'TODOS'
@@ -22,12 +23,13 @@ export default function AnalisePage() {
   const [filterDest, setFilterDest]   = useState<FilterDest>('TODOS')
   const [filterType, setFilterType]   = useState<FilterType>('TODOS')
   const [filterScore, setFilterScore] = useState<FilterScore>(5)
-  const [toast, setToast] = useState(false)
+  const [toast, setToast] = useState<string | null>(null)
 
   // Cross-reference state
   const [crossLoading, setCrossLoading] = useState(false)
   const [crossError, setCrossError] = useState('')
   const [opportunities, setOpportunities] = useState<CombinedOpportunity[] | null>(null)
+  const [crossProfile, setCrossProfile] = useState<'ruan' | 'overlens'>('overlens')
 
   function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -66,7 +68,7 @@ export default function AnalisePage() {
       if (!res.ok) throw new Error(data.error || 'Erro na análise')
       setResult(data)
       playDone()
-      setToast(true)
+      setToast('Análise pronta')
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Erro inesperado')
     } finally {
@@ -76,9 +78,9 @@ export default function AnalisePage() {
 
   async function handleCrossReference() {
     if (!result?.cuts?.length) return
-    const cached = loadMergedCacheResult()
+    const cached = loadMergedCacheResult(crossProfile)
     if (!cached?.trends?.length) {
-      setCrossError('Nenhuma trend em cache. Rode o Radar de Trends primeiro.')
+      setCrossError('no-cache')
       return
     }
 
@@ -95,6 +97,8 @@ export default function AnalisePage() {
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Erro no cruzamento')
       setOpportunities(data.opportunities ?? [])
+      playDone()
+      setToast('Cruzamento pronto')
     } catch (e) {
       setCrossError(e instanceof Error ? e.message : 'Erro inesperado')
     } finally {
@@ -110,7 +114,7 @@ export default function AnalisePage() {
 
   return (
     <div className="max-w-3xl mx-auto px-8 py-10">
-      {toast && <Toast message="Análise pronta" onDone={() => setToast(false)} />}
+      {toast && <Toast message={toast} onDone={() => setToast(null)} />}
       {/* Header */}
       <div className="mb-10">
         <h1 className="text-xs text-[#444] tracking-widest uppercase mb-1">Sistema Editorial</h1>
@@ -269,21 +273,45 @@ export default function AnalisePage() {
             </div>
 
             {opportunities === null && (
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={handleCrossReference}
-                  disabled={crossLoading}
-                  className="px-4 py-2 text-xs font-medium border border-[#333] text-[#e5e5e5] hover:border-white hover:bg-[#1a1a1a] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                >
-                  {crossLoading ? 'Cruzando...' : 'Cruzar com Trends'}
-                </button>
-                <span className="text-xs text-[#333]">
-                  combina cortes com trends em cache
-                </span>
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  {(['overlens', 'ruan'] as const).map(p => (
+                    <button
+                      key={p}
+                      onClick={() => { setCrossProfile(p); setCrossError('') }}
+                      className={`px-3 py-1 text-xs border transition-colors uppercase tracking-wide ${
+                        crossProfile === p
+                          ? 'border-[#444] text-[#e5e5e5]'
+                          : 'border-[#1a1a1a] text-[#444] hover:text-[#777] hover:border-[#333]'
+                      }`}
+                    >
+                      {p === 'overlens' ? 'Overlens' : 'Ruan'}
+                    </button>
+                  ))}
+                  <span className="text-xs text-[#333]">perfil das trends</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={handleCrossReference}
+                    disabled={crossLoading}
+                    className="px-4 py-2 text-xs font-medium border border-[#333] text-[#e5e5e5] hover:border-white hover:bg-[#1a1a1a] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    {crossLoading ? 'Cruzando...' : 'Cruzar com Trends'}
+                  </button>
+                  <span className="text-xs text-[#333]">combina cortes com trends em cache</span>
+                </div>
               </div>
             )}
 
-            {crossError && (
+            {crossError && crossError === 'no-cache' && (
+              <p className="text-xs text-[#ef4444] mt-2">
+                Nenhuma trend em cache para {crossProfile === 'overlens' ? 'Overlens' : 'Ruan'}.{' '}
+                <Link href="/trends" className="underline hover:text-[#ff7070] transition-colors">
+                  Abrir Radar de Trends
+                </Link>
+              </p>
+            )}
+            {crossError && crossError !== 'no-cache' && (
               <p className="text-xs text-[#ef4444] mt-2">{crossError}</p>
             )}
 
