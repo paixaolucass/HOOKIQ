@@ -10,6 +10,7 @@ const YOUTUBE_KEY = process.env.YOUTUBE_API_KEY!
 
 async function youtubeSearch(query: string): Promise<string[]> {
   if (!YOUTUBE_KEY) return []
+  const publishedAfter = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
   const params = new URLSearchParams({
     part: 'id',
     q: `${query} #shorts`,
@@ -17,6 +18,7 @@ async function youtubeSearch(query: string): Promise<string[]> {
     videoDuration: 'short',
     order: 'relevance',
     maxResults: '5',
+    publishedAfter,
     key: YOUTUBE_KEY,
   })
   try {
