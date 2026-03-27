@@ -6,32 +6,61 @@ export const maxDuration = 60
 const APIFY_TOKEN = process.env.APIFY_API_TOKEN!
 const YOUTUBE_KEY = process.env.YOUTUBE_API_KEY!
 
-// ── YouTube Data API (instantâneo, sem timeout) ───────────────────────────────
+export interface VideoResult {
+  url: string
+  views?: number
+}
 
-async function youtubeSearch(query: string): Promise<string[]> {
+// ── YouTube Data API ──────────────────────────────────────────────────────────
+
+async function youtubeSearch(query: string): Promise<VideoResult[]> {
   if (!YOUTUBE_KEY) return []
-  const publishedAfter = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
-  const params = new URLSearchParams({
+
+  // 14 dias — janela relevante pra trend viral
+  const publishedAfter = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString()
+
+  // 1. Buscar IDs ordenados por viewCount
+  const searchParams = new URLSearchParams({
     part: 'id',
     q: `${query} #shorts`,
     type: 'video',
     videoDuration: 'short',
-    order: 'relevance',
+    order: 'viewCount',
     maxResults: '5',
     publishedAfter,
     key: YOUTUBE_KEY,
   })
+
   try {
-    const res = await fetch(
-      `https://www.googleapis.com/youtube/v3/search?${params}`,
+    const searchRes = await fetch(
+      `https://www.googleapis.com/youtube/v3/search?${searchParams}`,
       { signal: AbortSignal.timeout(8_000) }
     )
-    if (!res.ok) return []
-    const data = await res.json()
+    if (!searchRes.ok) return []
+    const searchData = await searchRes.json()
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return (data.items ?? []).map((item: any) =>
-      `https://www.youtube.com/watch?v=${item.id.videoId}`
-    ).filter(Boolean)
+    const ids: string[] = (searchData.items ?? []).map((i: any) => i.id?.videoId).filter(Boolean)
+    if (ids.length === 0) return []
+
+    // 2. Buscar estatísticas (viewCount) — 1 quota unit
+    const statsParams = new URLSearchParams({
+      part: 'statistics',
+      id: ids.join(','),
+      key: YOUTUBE_KEY,
+    })
+    const statsRes = await fetch(
+      `https://www.googleapis.com/youtube/v3/videos?${statsParams}`,
+      { signal: AbortSignal.timeout(8_000) }
+    )
+    if (!statsRes.ok) {
+      return ids.map(id => ({ url: `https://www.youtube.com/watch?v=${id}` }))
+    }
+    const statsData = await statsRes.json()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return (statsData.items ?? []).map((item: any) => ({
+      url: `https://www.youtube.com/watch?v=${item.id}`,
+      views: parseInt(item.statistics?.viewCount ?? '0', 10),
+    }))
   } catch {
     return []
   }
@@ -57,19 +86,21 @@ async function runActor(actorId: string, input: Record<string, unknown>): Promis
   }
 }
 
-function tiktokUrls(items: Record<string, unknown>[]): string[] {
+function tiktokResults(items: Record<string, unknown>[]): VideoResult[] {
   return items.flatMap(i => {
-    if (typeof i.webVideoUrl === 'string' && i.webVideoUrl) return [i.webVideoUrl]
-    if (typeof i.url === 'string' && i.url) return [i.url]
-    return []
+    const url = (typeof i.webVideoUrl === 'string' ? i.webVideoUrl : null)
+      ?? (typeof i.url === 'string' ? i.url : null)
+    if (!url) return []
+    return [{ url, views: typeof i.playCount === 'number' ? i.playCount : undefined }]
   })
 }
 
-function instagramUrls(items: Record<string, unknown>[]): string[] {
+function instagramResults(items: Record<string, unknown>[]): VideoResult[] {
   return items.flatMap(i => {
-    if (typeof i.url === 'string' && i.url) return [i.url]
-    if (typeof i.shortCode === 'string') return [`https://www.instagram.com/p/${i.shortCode}/`]
-    return []
+    const url = (typeof i.url === 'string' ? i.url : null)
+      ?? (typeof i.shortCode === 'string' ? `https://www.instagram.com/p/${i.shortCode}/` : null)
+    if (!url) return []
+    return [{ url, views: typeof i.videoPlayCount === 'number' ? i.videoPlayCount : undefined }]
   })
 }
 
@@ -86,10 +117,9 @@ export async function GET(request: NextRequest) {
 
   if (!query) return NextResponse.json({ error: 'q é obrigatório' }, { status: 400 })
 
-  let videos: string[] = []
+  let videos: VideoResult[] = []
 
   if (/youtube|shorts/i.test(platform)) {
-    // YouTube Data API — rápido e sem custo extra
     videos = await youtubeSearch(query)
 
   } else if (/tiktok/i.test(platform)) {
@@ -98,7 +128,7 @@ export async function GET(request: NextRequest) {
       resultsPerPage: 5,
       type: 'search',
     })
-    videos = tiktokUrls(items)
+    videos = tiktokResults(items)
 
   } else if (/instagram|reels/i.test(platform)) {
     const tag = query.replace(/\s+/g, '').toLowerCase()
@@ -107,7 +137,7 @@ export async function GET(request: NextRequest) {
       resultsType: 'posts',
       resultsLimit: 5,
     })
-    videos = instagramUrls(items)
+    videos = instagramResults(items)
   }
 
   return NextResponse.json({ videos: videos.slice(0, 5) })

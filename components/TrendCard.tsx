@@ -309,7 +309,7 @@ export default function TrendCard({
   const [saved, setSaved] = useState(false)
   const [saving, setSaving] = useState(false)
   const [savedFeedback, setSavedFeedback] = useState(false)
-  const [fetchedVideos, setFetchedVideos] = useState<string[]>([])
+  const [fetchedVideos, setFetchedVideos] = useState<{ url: string; views?: number }[]>([])
   const [loadingVideos, setLoadingVideos] = useState(false)
   const videosFetched = useRef(false)
 
@@ -324,7 +324,11 @@ export default function TrendCard({
     setLoadingVideos(true)
     fetch(`/api/trends/videos?q=${encodeURIComponent(trend.superficialSubject)}&platform=${encodeURIComponent(trend.platform)}`)
       .then(r => r.ok ? r.json() : { videos: [] })
-      .then(data => setFetchedVideos(data.videos ?? []))
+      .then(data => setFetchedVideos(
+        (data.videos ?? []).map((v: string | { url: string; views?: number }) =>
+          typeof v === 'string' ? { url: v } : v
+        )
+      ))
       .catch(() => {})
       .finally(() => setLoadingVideos(false))
   }, [expanded, isVideoPlatform, trend.referenceVideos, trend.superficialSubject, trend.platform])
@@ -600,11 +604,12 @@ export default function TrendCard({
 
           {/* Vídeos de referência */}
           {isVideoPlatform && (() => {
-            const displayVideos = trend.referenceVideos?.length ? trend.referenceVideos : fetchedVideos
+            const legacy = (trend.referenceVideos ?? []).map(url => ({ url, views: undefined }))
+            const displayVideos = legacy.length ? legacy : fetchedVideos
             return (
               <div className="space-y-2 pt-4 border-t border-[#111]">
                 <div className="flex flex-col gap-0.5">
-                  <span className="text-xs text-[#333] uppercase tracking-widest">Vídeos modelo</span>
+                  <span className="text-xs text-[#333] uppercase tracking-widest">Vídeos em alta</span>
                   {trend.trendSource && (
                     <span className="text-[10px] text-[#444]">fonte: {trend.trendSource}</span>
                   )}
@@ -614,24 +619,35 @@ export default function TrendCard({
                 )}
                 {!loadingVideos && displayVideos.length > 0 && (
                   <div className="space-y-1.5">
-                    {displayVideos.map((url, idx) => {
-                      let label = url
+                    {displayVideos.map((video, idx) => {
+                      let label = video.url
                       try {
-                        const u = new URL(url)
+                        const u = new URL(video.url)
                         const host = u.hostname.replace('www.', '')
                         label = `${host}${u.pathname.slice(0, 30)}${u.pathname.length > 30 ? '…' : ''}`
                       } catch { /* keep original */ }
+                      const views = video.views
+                      const viewsLabel = views
+                        ? views >= 1_000_000
+                          ? `${(views / 1_000_000).toFixed(1)}M views`
+                          : views >= 1_000
+                            ? `${(views / 1_000).toFixed(0)}K views`
+                            : `${views} views`
+                        : null
                       return (
                         <a
                           key={idx}
-                          href={url}
+                          href={video.url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="flex items-center gap-2 text-xs text-[#555] hover:text-[#aaa] transition-colors truncate"
+                          className="flex items-center gap-2 text-xs text-[#555] hover:text-[#aaa] transition-colors"
                           onClick={e => e.stopPropagation()}
                         >
                           <span className="font-mono text-[#333] flex-shrink-0">{idx + 1}.</span>
-                          <span className="truncate">{label}</span>
+                          <span className="truncate flex-1">{label}</span>
+                          {viewsLabel && (
+                            <span className="flex-shrink-0 text-[10px] font-mono text-[#22c55e]">{viewsLabel}</span>
+                          )}
                         </a>
                       )
                     })}
