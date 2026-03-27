@@ -4,39 +4,55 @@ import { createClient } from '@/lib/supabase/server'
 export const maxDuration = 60
 
 const APIFY_TOKEN = process.env.APIFY_API_TOKEN!
+const YOUTUBE_KEY = process.env.YOUTUBE_API_KEY!
 
-// ── Actor IDs ─────────────────────────────────────────────────────────────────
+// ── YouTube Data API (instantâneo, sem timeout) ───────────────────────────────
 
-const ACTORS = {
-  youtube:   'streamers~youtube-scraper',
-  tiktok:    'clockworks~free-tiktok-scraper',
-  instagram: 'apify~instagram-scraper',
+async function youtubeSearch(query: string): Promise<string[]> {
+  if (!YOUTUBE_KEY) return []
+  const params = new URLSearchParams({
+    part: 'id',
+    q: `${query} #shorts`,
+    type: 'video',
+    videoDuration: 'short',
+    order: 'relevance',
+    maxResults: '5',
+    key: YOUTUBE_KEY,
+  })
+  try {
+    const res = await fetch(
+      `https://www.googleapis.com/youtube/v3/search?${params}`,
+      { signal: AbortSignal.timeout(8_000) }
+    )
+    if (!res.ok) return []
+    const data = await res.json()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return (data.items ?? []).map((item: any) =>
+      `https://www.youtube.com/watch?v=${item.id.videoId}`
+    ).filter(Boolean)
+  } catch {
+    return []
+  }
 }
 
-// ── Apify helper ──────────────────────────────────────────────────────────────
+// ── Apify helper (TikTok / Instagram) ────────────────────────────────────────
 
 async function runActor(actorId: string, input: Record<string, unknown>): Promise<Record<string, unknown>[]> {
-  const res = await fetch(
-    `https://api.apify.com/v2/acts/${actorId}/run-sync-get-dataset-items?token=${APIFY_TOKEN}&timeout=50`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(input),
-      signal: AbortSignal.timeout(55_000),
-    }
-  )
-  if (!res.ok) return []
-  return res.json()
-}
-
-// ── URL extractors ─────────────────────────────────────────────────────────────
-
-function youtubeUrls(items: Record<string, unknown>[]): string[] {
-  return items.flatMap(i => {
-    if (typeof i.url === 'string' && i.url) return [i.url]
-    if (typeof i.id === 'string') return [`https://www.youtube.com/watch?v=${i.id}`]
+  try {
+    const res = await fetch(
+      `https://api.apify.com/v2/acts/${actorId}/run-sync-get-dataset-items?token=${APIFY_TOKEN}&timeout=25`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(input),
+        signal: AbortSignal.timeout(30_000),
+      }
+    )
+    if (!res.ok) return []
+    return res.json()
+  } catch {
     return []
-  })
+  }
 }
 
 function tiktokUrls(items: Record<string, unknown>[]): string[] {
@@ -70,37 +86,24 @@ export async function GET(request: NextRequest) {
 
   let videos: string[] = []
 
-  if (/tiktok.*instagram|instagram.*tiktok/i.test(platform)) {
-    // Combined platform — TikTok first
-    const items = await runActor(ACTORS.tiktok, {
-      searchQueries: [query],
-      resultsPerPage: 6,
-      type: 'search',
-    })
-    videos = tiktokUrls(items)
-
-  } else if (/youtube|shorts/i.test(platform)) {
-    const items = await runActor(ACTORS.youtube, {
-      searchKeywords: `${query} #shorts`,
-      maxResults: 6,
-      type: 'SEARCH',
-    })
-    videos = youtubeUrls(items)
+  if (/youtube|shorts/i.test(platform)) {
+    // YouTube Data API — rápido e sem custo extra
+    videos = await youtubeSearch(query)
 
   } else if (/tiktok/i.test(platform)) {
-    const items = await runActor(ACTORS.tiktok, {
+    const items = await runActor('clockworks~free-tiktok-scraper', {
       searchQueries: [query],
-      resultsPerPage: 6,
+      resultsPerPage: 5,
       type: 'search',
     })
     videos = tiktokUrls(items)
 
   } else if (/instagram|reels/i.test(platform)) {
     const tag = query.replace(/\s+/g, '').toLowerCase()
-    const items = await runActor(ACTORS.instagram, {
+    const items = await runActor('apify~instagram-scraper', {
       directUrls: [`https://www.instagram.com/explore/tags/${tag}/`],
       resultsType: 'posts',
-      resultsLimit: 6,
+      resultsLimit: 5,
     })
     videos = instagramUrls(items)
   }
