@@ -205,12 +205,10 @@ async function loadSupabaseCache(
 ): Promise<{ trends: Trend[]; metaTrend?: MetaTrend; fetchedAt: string } | null> {
   // Cache is shared across all users — uses service role to bypass RLS
   const { data, error } = await adminSupabase
-    .from('sessions')
+    .from('trends_cache')
     .select('result, created_at')
     .eq('type', type)
     .gte('created_at', new Date(Date.now() - ttlMs).toISOString())
-    .order('created_at', { ascending: false })
-    .limit(1)
     .single()
 
   if (error && error.code !== 'PGRST116') console.error('[trends] cache read error:', type, error.message)
@@ -433,8 +431,8 @@ export async function POST(request: NextRequest) {
     // ── Persist caches immediately (without videos) ──────────────────────────
     if (dataRanAI || socialRanAI) {
       const saves: PromiseLike<unknown>[] = []
-      if (dataRanAI)   saves.push(adminSupabase.from('sessions').insert({ user_id: user.id, type: dataCacheType,   input: null, result: { trends: dataTrends,   metaTrend: dataMetaTrend } }).then(({ error }: { error: { message: string } | null }) => { if (error) console.error('[trends] cache save error (data):', error.message); else console.log('[trends] cache saved:', dataCacheType) }))
-      if (socialRanAI) saves.push(adminSupabase.from('sessions').insert({ user_id: user.id, type: socialCacheType, input: null, result: { trends: socialTrends } }).then(({ error }: { error: { message: string } | null }) => { if (error) console.error('[trends] cache save error (social):', error.message); else console.log('[trends] cache saved:', socialCacheType) }))
+      if (dataRanAI)   saves.push(adminSupabase.from('trends_cache').upsert({ type: dataCacheType,   result: { trends: dataTrends,   metaTrend: dataMetaTrend }, created_at: new Date().toISOString() }, { onConflict: 'type' }).then(({ error }: { error: { message: string } | null }) => { if (error) console.error('[trends] cache save error (data):', error.message); else console.log('[trends] cache saved:', dataCacheType) }))
+      if (socialRanAI) saves.push(adminSupabase.from('trends_cache').upsert({ type: socialCacheType, result: { trends: socialTrends }, created_at: new Date().toISOString() }, { onConflict: 'type' }).then(({ error }: { error: { message: string } | null }) => { if (error) console.error('[trends] cache save error (social):', error.message); else console.log('[trends] cache saved:', socialCacheType) }))
       await Promise.all(saves)
     }
 
