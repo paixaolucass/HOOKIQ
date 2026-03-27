@@ -38,8 +38,16 @@ function CacheRow({ label, fetchedAt, valid, ttlMs }: { label: string; fetchedAt
   )
 }
 
+async function clearAllCache() {
+  Object.keys(localStorage)
+    .filter(k => k.startsWith('hookiq_trends'))
+    .forEach(k => localStorage.removeItem(k))
+  await fetch('/api/trends/reset', { method: 'POST' })
+}
+
 export default function CacheStatus({ profile, onRefresh, className = 'mb-10' }: CacheStatusProps) {
   const [tick, setTick] = useState(0)
+  const [clearing, setClearing] = useState(false)
 
   // Re-render every 30s to keep times live
   useEffect(() => {
@@ -85,14 +93,30 @@ export default function CacheStatus({ profile, onRefresh, className = 'mb-10' }:
           <CacheRow label="Dados"  fetchedAt={dataFetchedAt}   valid={dataValid}   ttlMs={DATA_CACHE_TTL} />
           <CacheRow label="Social" fetchedAt={socialFetchedAt} valid={socialValid} ttlMs={SOCIAL_CACHE_TTL} />
         </div>
-        {expired && (
-          <button
-            onClick={onRefresh}
-            className="text-xs text-[#ef4444] border border-[#ef4444]/40 px-3 py-1 hover:bg-[#ef4444]/10 transition-colors self-end"
-          >
-            atualizar agora
-          </button>
-        )}
+        <div className="flex flex-col gap-2 items-end self-end">
+          {expired && (
+            <button
+              onClick={onRefresh}
+              className="text-xs text-[#ef4444] border border-[#ef4444]/40 px-3 py-1 hover:bg-[#ef4444]/10 transition-colors"
+            >
+              atualizar agora
+            </button>
+          )}
+          {hasAny && (
+            <button
+              onClick={async () => {
+                setClearing(true)
+                await clearAllCache()
+                setClearing(false)
+                onRefresh()
+              }}
+              disabled={clearing}
+              className="text-xs text-[#333] border border-[#222] px-3 py-1 hover:text-[#aaa] hover:border-[#444] transition-colors disabled:opacity-40"
+            >
+              {clearing ? 'limpando...' : 'limpar cache'}
+            </button>
+          )}
+        </div>
       </div>
     </div>
   )
