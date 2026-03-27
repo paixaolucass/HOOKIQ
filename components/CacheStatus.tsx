@@ -108,13 +108,14 @@ export default function CacheStatus({ profile, onRefresh, className = 'mb-10' }:
                 setClearing(true)
                 await clearAllCache()
                 setClearing(false)
-                onRefresh()
+                setTick(t => t + 1)
               }}
               disabled={clearing}
               className="text-xs text-[#333] border border-[#222] px-3 py-1 hover:text-[#aaa] hover:border-[#444] transition-colors disabled:opacity-40"
             >
               {clearing ? 'limpando...' : 'limpar cache'}
             </button>
+
           )}
         </div>
       </div>
