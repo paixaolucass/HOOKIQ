@@ -530,8 +530,6 @@ export default function TrendsPage() {
     const socialEntry = loadSocialCache(profile)
     setCacheInfoMap(prev => ({ ...prev, [profile]: { data: dataEntry?.fetchedAt ?? null, social: socialEntry?.fetchedAt ?? null } }))
 
-    // No local cache — auto-fetch so server cache (Supabase) is checked automatically
-    if (!cached) setTimeout(() => fetchTrends(), 0)
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profile])
