@@ -428,12 +428,22 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // ── Persist caches immediately (without videos) ──────────────────────────
-    if (dataRanAI || socialRanAI) {
-      const saves: PromiseLike<unknown>[] = []
-      if (dataRanAI)   saves.push(adminSupabase.from('trends_cache').upsert({ type: dataCacheType,   result: { trends: dataTrends,   metaTrend: dataMetaTrend }, created_at: new Date().toISOString() }, { onConflict: 'type' }).then(({ error }: { error: { message: string } | null }) => { if (error) console.error('[trends] cache save error (data):', error.message); else console.log('[trends] cache saved:', dataCacheType) }))
-      if (socialRanAI) saves.push(adminSupabase.from('trends_cache').upsert({ type: socialCacheType, result: { trends: socialTrends }, created_at: new Date().toISOString() }, { onConflict: 'type' }).then(({ error }: { error: { message: string } | null }) => { if (error) console.error('[trends] cache save error (social):', error.message); else console.log('[trends] cache saved:', socialCacheType) }))
-      await Promise.all(saves)
+    // ── Persist caches immediately ────────────────────────────────────────────
+    if (dataRanAI) {
+      const { error } = await adminSupabase.from('trends_cache').upsert(
+        { type: dataCacheType, result: { trends: dataTrends, metaTrend: dataMetaTrend }, created_at: new Date().toISOString() },
+        { onConflict: 'type' }
+      )
+      if (error) console.error('[trends] cache save error (data):', error.message)
+      else console.log('[trends] cache saved:', dataCacheType)
+    }
+    if (socialRanAI) {
+      const { error } = await adminSupabase.from('trends_cache').upsert(
+        { type: socialCacheType, result: { trends: socialTrends }, created_at: new Date().toISOString() },
+        { onConflict: 'type' }
+      )
+      if (error) console.error('[trends] cache save error (social):', error.message)
+      else console.log('[trends] cache saved:', socialCacheType)
     }
 
     // ── Deduplicate + re-rank ────────────────────────────────────────────────
