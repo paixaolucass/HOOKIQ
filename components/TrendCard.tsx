@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Trend, TrendRhetoric, SaturationEstimate, TrendComment, TrendAssignment } from '@/types'
 import { ChevronDown, ChevronUp, Copy, Check, Bookmark, BookmarkCheck, Clock } from 'lucide-react'
 import { saveTrend } from '@/lib/saved-trends'
@@ -309,6 +309,25 @@ export default function TrendCard({
   const [saved, setSaved] = useState(false)
   const [saving, setSaving] = useState(false)
   const [savedFeedback, setSavedFeedback] = useState(false)
+  const [fetchedVideos, setFetchedVideos] = useState<string[]>([])
+  const [loadingVideos, setLoadingVideos] = useState(false)
+  const videosFetched = useRef(false)
+
+  const isVideoPlatform = /youtube|tiktok|instagram|reels|shorts/i.test(trend.platform)
+
+  useEffect(() => {
+    if (!expanded) return
+    if (!isVideoPlatform) return
+    if (trend.referenceVideos?.length) return
+    if (videosFetched.current) return
+    videosFetched.current = true
+    setLoadingVideos(true)
+    fetch(`/api/trends/videos?q=${encodeURIComponent(trend.superficialSubject)}&platform=${encodeURIComponent(trend.platform)}`)
+      .then(r => r.ok ? r.json() : { videos: [] })
+      .then(data => setFetchedVideos(data.videos ?? []))
+      .catch(() => {})
+      .finally(() => setLoadingVideos(false))
+  }, [expanded, isVideoPlatform, trend.referenceVideos, trend.superficialSubject, trend.platform])
   const config = windowConfig[trend.window]
 
   // fetchedAt from prop or fallback from localStorage (for backwards compatibility)
@@ -580,39 +599,50 @@ export default function TrendCard({
           )}
 
           {/* Vídeos de referência */}
-          {trend.referenceVideos && trend.referenceVideos.length > 0 && (
-            <div className="space-y-2 pt-4 border-t border-[#111]">
-              <div className="flex flex-col gap-0.5">
-                <span className="text-xs text-[#333] uppercase tracking-widest">Vídeos modelo</span>
-                {trend.trendSource && (
-                  <span className="text-[10px] text-[#444]">fonte: {trend.trendSource}</span>
+          {isVideoPlatform && (() => {
+            const displayVideos = trend.referenceVideos?.length ? trend.referenceVideos : fetchedVideos
+            return (
+              <div className="space-y-2 pt-4 border-t border-[#111]">
+                <div className="flex flex-col gap-0.5">
+                  <span className="text-xs text-[#333] uppercase tracking-widest">Vídeos modelo</span>
+                  {trend.trendSource && (
+                    <span className="text-[10px] text-[#444]">fonte: {trend.trendSource}</span>
+                  )}
+                </div>
+                {loadingVideos && (
+                  <p className="text-[10px] text-[#333]">Buscando vídeos...</p>
+                )}
+                {!loadingVideos && displayVideos.length > 0 && (
+                  <div className="space-y-1.5">
+                    {displayVideos.map((url, idx) => {
+                      let label = url
+                      try {
+                        const u = new URL(url)
+                        const host = u.hostname.replace('www.', '')
+                        label = `${host}${u.pathname.slice(0, 30)}${u.pathname.length > 30 ? '…' : ''}`
+                      } catch { /* keep original */ }
+                      return (
+                        <a
+                          key={idx}
+                          href={url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-2 text-xs text-[#555] hover:text-[#aaa] transition-colors truncate"
+                          onClick={e => e.stopPropagation()}
+                        >
+                          <span className="font-mono text-[#333] flex-shrink-0">{idx + 1}.</span>
+                          <span className="truncate">{label}</span>
+                        </a>
+                      )
+                    })}
+                  </div>
+                )}
+                {!loadingVideos && displayVideos.length === 0 && videosFetched.current && (
+                  <p className="text-[10px] text-[#333]">Nenhum vídeo encontrado.</p>
                 )}
               </div>
-              <div className="space-y-1.5">
-                {trend.referenceVideos.map((url, idx) => {
-                  let label = url
-                  try {
-                    const u = new URL(url)
-                    const host = u.hostname.replace('www.', '')
-                    label = `${host}${u.pathname.slice(0, 30)}${u.pathname.length > 30 ? '…' : ''}`
-                  } catch { /* keep original */ }
-                  return (
-                    <a
-                      key={idx}
-                      href={url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-2 text-xs text-[#555] hover:text-[#aaa] transition-colors truncate"
-                      onClick={e => e.stopPropagation()}
-                    >
-                      <span className="font-mono text-[#333] flex-shrink-0">{idx + 1}.</span>
-                      <span className="truncate">{label}</span>
-                    </a>
-                  )
-                })}
-              </div>
-            </div>
-          )}
+            )
+          })()}
 
           {/* Publishing tip */}
           {trend.publishingTip && (
