@@ -433,8 +433,8 @@ export async function POST(request: NextRequest) {
     // ── Persist caches immediately (without videos) ──────────────────────────
     if (dataRanAI || socialRanAI) {
       const saves: PromiseLike<unknown>[] = []
-      if (dataRanAI)   saves.push(adminSupabase.from('sessions').insert({ user_id: user.id, type: dataCacheType,   result: { trends: dataTrends,   metaTrend: dataMetaTrend } }).then(({ error }: { error: { message: string } | null }) => { if (error) console.error('[trends] cache save error (data):', error.message); else console.log('[trends] cache saved:', dataCacheType) }))
-      if (socialRanAI) saves.push(adminSupabase.from('sessions').insert({ user_id: user.id, type: socialCacheType, result: { trends: socialTrends } }).then(({ error }: { error: { message: string } | null }) => { if (error) console.error('[trends] cache save error (social):', error.message); else console.log('[trends] cache saved:', socialCacheType) }))
+      if (dataRanAI)   saves.push(adminSupabase.from('sessions').insert({ user_id: user.id, type: dataCacheType,   input: null, result: { trends: dataTrends,   metaTrend: dataMetaTrend } }).then(({ error }: { error: { message: string } | null }) => { if (error) console.error('[trends] cache save error (data):', error.message); else console.log('[trends] cache saved:', dataCacheType) }))
+      if (socialRanAI) saves.push(adminSupabase.from('sessions').insert({ user_id: user.id, type: socialCacheType, input: null, result: { trends: socialTrends } }).then(({ error }: { error: { message: string } | null }) => { if (error) console.error('[trends] cache save error (social):', error.message); else console.log('[trends] cache saved:', socialCacheType) }))
       await Promise.all(saves)
     }
 
