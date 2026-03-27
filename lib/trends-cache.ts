@@ -218,8 +218,12 @@ export async function fetchTrendsWithCache(): Promise<[AnalysisResult, boolean]>
   }
 
   const res = await fetch('/api/trends', { method: 'POST' })
+  if (!res.ok) {
+    let msg = 'Erro ao buscar trends'
+    try { msg = (await res.json()).error || msg } catch { msg = (await res.text()) || msg }
+    throw new Error(msg)
+  }
   const data = await res.json()
-  if (!res.ok) throw new Error(data.error || 'Erro ao buscar trends')
   const dt = (data._dataTrends  ?? []) as Trend[]
   const st = (data._socialTrends ?? []) as Trend[]
   if (dt.length > 0 || st.length > 0) {

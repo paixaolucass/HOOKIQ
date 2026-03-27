@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import OpenAI from 'openai'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { HOOKIQ_SYSTEM_PROMPT, getDataTrendsPrompt, getDataTrendsPromptForProfile, getSocialTrendsPromptShared } from '@/lib/prompts'
 import { fetchGoogleTrendsUS, fetchYouTubeShortsGlobal, fetchAITrends, fetchHackerNewsTrends, fetchRedditBrTrends, fetchProductHuntTrends, fetchGoogleNewsBr, fetchArxivAI, fetchDevToTrending } from '@/lib/trends-sources'
 import { DATA_CACHE_TTL, SOCIAL_CACHE_TTL } from '@/lib/trends-cache'
 import type { Trend, MetaTrend } from '@/types'
+
+export const maxDuration = 300 // 5 min — Vercel Pro/Enterprise; 60s on free tier
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
 
@@ -196,13 +198,13 @@ function deduplicateTrends(trends: Trend[]): Trend[] {
 // ── Supabase cache helpers ─────────────────────────────────────────────────────
 
 async function loadSupabaseCache(
-  supabase: Awaited<ReturnType<typeof import('@/lib/supabase/server').createClient>>,
-  _userId: string,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  adminSupabase: any,
   type: string,
   ttlMs: number,
 ): Promise<{ trends: Trend[]; metaTrend?: MetaTrend; fetchedAt: string } | null> {
-  // Cache is shared across all users — first fetch of the period serves everyone
-  const { data } = await supabase
+  // Cache is shared across all users — uses service role to bypass RLS
+  const { data } = await adminSupabase
     .from('sessions')
     .select('result, created_at')
     .eq('type', type)
@@ -222,6 +224,7 @@ async function loadSupabaseCache(
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient()
+    const adminSupabase = createAdminClient()
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     if (authError || !user) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
 
@@ -234,8 +237,8 @@ export async function POST(request: NextRequest) {
 
     // ── Check split Supabase cache ──────────────────────────────────────────
     const [cachedData, cachedSocial] = await Promise.all([
-      loadSupabaseCache(supabase, user.id, dataCacheType,   DATA_CACHE_TTL),
-      loadSupabaseCache(supabase, user.id, socialCacheType, SOCIAL_CACHE_TTL),
+      loadSupabaseCache(adminSupabase, dataCacheType,   DATA_CACHE_TTL),
+      loadSupabaseCache(adminSupabase, socialCacheType, SOCIAL_CACHE_TTL),
     ])
 
     // Treat empty-trends cache entries as misses — prevents stale empty entries blocking fresh fetches
@@ -428,8 +431,8 @@ export async function POST(request: NextRequest) {
     // ── Persist caches immediately (without videos) ──────────────────────────
     if (dataRanAI || socialRanAI) {
       const saves: PromiseLike<unknown>[] = []
-      if (dataRanAI)   saves.push(supabase.from('sessions').insert({ user_id: user.id, type: dataCacheType,   result: { trends: dataTrends,   metaTrend: dataMetaTrend } }))
-      if (socialRanAI) saves.push(supabase.from('sessions').insert({ user_id: user.id, type: socialCacheType, result: { trends: socialTrends } }))
+      if (dataRanAI)   saves.push(adminSupabase.from('sessions').insert({ user_id: user.id, type: dataCacheType,   result: { trends: dataTrends,   metaTrend: dataMetaTrend } }))
+      if (socialRanAI) saves.push(adminSupabase.from('sessions').insert({ user_id: user.id, type: socialCacheType, result: { trends: socialTrends } }))
       await Promise.all(saves)
     }
 

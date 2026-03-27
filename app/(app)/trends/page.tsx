@@ -463,8 +463,12 @@ async function fetchTrendsForProfile(
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ profile }),
   })
+  if (!res.ok) {
+    let msg = 'Erro ao buscar trends'
+    try { msg = (await res.json()).error || msg } catch { msg = (await res.text()) || msg }
+    throw new Error(msg)
+  }
   const data = await res.json()
-  if (!res.ok) throw new Error(data.error || 'Erro ao buscar trends')
   return {
     trends: data.trends ?? [],
     dataTrends: data._dataTrends ?? [],
