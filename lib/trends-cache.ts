@@ -220,7 +220,7 @@ export async function fetchTrendsWithCache(): Promise<[AnalysisResult, boolean]>
   const res = await fetch('/api/trends', { method: 'POST' })
   if (!res.ok) {
     let msg = 'Erro ao buscar trends'
-    try { msg = (await res.json()).error || msg } catch { msg = (await res.text()) || msg }
+    try { const t = await res.text(); msg = (JSON.parse(t).error) || t || msg } catch { /* keep default */ }
     throw new Error(msg)
   }
   const data = await res.json()
