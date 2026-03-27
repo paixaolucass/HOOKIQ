@@ -204,7 +204,7 @@ async function loadSupabaseCache(
   ttlMs: number,
 ): Promise<{ trends: Trend[]; metaTrend?: MetaTrend; fetchedAt: string } | null> {
   // Cache is shared across all users — uses service role to bypass RLS
-  const { data } = await adminSupabase
+  const { data, error } = await adminSupabase
     .from('sessions')
     .select('result, created_at')
     .eq('type', type)
@@ -213,9 +213,11 @@ async function loadSupabaseCache(
     .limit(1)
     .single()
 
-  if (!data?.result) return null
+  if (error && error.code !== 'PGRST116') console.error('[trends] cache read error:', type, error.message)
+  if (!data?.result) { console.log('[trends] cache miss:', type); return null }
   const result = data.result as { trends?: Trend[]; metaTrend?: MetaTrend }
   if (!Array.isArray(result.trends)) return null
+  console.log('[trends] cache hit:', type, result.trends.length, 'trends')
   return { trends: result.trends, metaTrend: result.metaTrend, fetchedAt: data.created_at }
 }
 
@@ -430,9 +432,9 @@ export async function POST(request: NextRequest) {
 
     // ── Persist caches immediately (without videos) ──────────────────────────
     if (dataRanAI || socialRanAI) {
-      const saves: PromiseLike<unknown>[] = []
-      if (dataRanAI)   saves.push(adminSupabase.from('sessions').insert({ user_id: user.id, type: dataCacheType,   result: { trends: dataTrends,   metaTrend: dataMetaTrend } }))
-      if (socialRanAI) saves.push(adminSupabase.from('sessions').insert({ user_id: user.id, type: socialCacheType, result: { trends: socialTrends } }))
+      const saves: Promise<unknown>[] = []
+      if (dataRanAI)   saves.push(adminSupabase.from('sessions').insert({ user_id: user.id, type: dataCacheType,   result: { trends: dataTrends,   metaTrend: dataMetaTrend } }).then(({ error }: { error: { message: string } | null }) => { if (error) console.error('[trends] cache save error (data):', error.message); else console.log('[trends] cache saved:', dataCacheType) }))
+      if (socialRanAI) saves.push(adminSupabase.from('sessions').insert({ user_id: user.id, type: socialCacheType, result: { trends: socialTrends } }).then(({ error }: { error: { message: string } | null }) => { if (error) console.error('[trends] cache save error (social):', error.message); else console.log('[trends] cache saved:', socialCacheType) }))
       await Promise.all(saves)
     }
 
